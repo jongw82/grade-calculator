@@ -527,7 +527,7 @@ const GRADES=['-','A+','A0','B+','B0','C+','C0','D+','D0','F','P','NP'];
 const SEMS=['1-1','1-2','2-1','2-2','3-1','3-2','4-1','4-2'];
 
 // gKey: grade → css class suffix (. and + → safe chars)
-const gKey=g=>g.replace('+','p').replace('-','');
+const gKey=g=>(g||'-').replace('+','p').replace('-','');
 function gClass(g){
   const k=gKey(g);
   return`gc-${k||'-'}`;
@@ -893,6 +893,16 @@ async function sv(){
   await sb.from('courses').upsert({user_id:currentUser.id,data:payload},{onConflict:'user_id'});
 }
 
+// 구버전 데이터 마이그레이션 — 새로 추가된 필드(expGrade 등) 누락분 보정
+function migrateCourses(){
+  C = C.map(c => ({
+    grade:'-', prevGrade:'-', expGrade:'-',
+    status:'미수강', retake:false, retakePlan:false,
+    takeSem:'', planSem:'', dc:0, prereq:'', prereqRec:'',
+    ...c
+  }));
+}
+
 async function loadCloud(){
   if(!currentUser)return false;
   const{data,error}=await sb.from('courses').select('data').eq('user_id',currentUser.id).single();
@@ -901,12 +911,14 @@ async function loadCloud(){
   if(d.courses)C=d.courses;
   if(d.yr){yr=parseInt(d.yr);const _ay=document.getElementById('admYear');if(_ay)_ay.value=yr;}
   if(d.uname)uname=d.uname;
+  migrateCourses();
   return true;
 }
 
 function ldLocal(){
   const c=localStorage.getItem('sj_c'),y=localStorage.getItem('sj_y'),n=localStorage.getItem('sj_n');
   if(c)C=JSON.parse(c); if(y){yr=parseInt(y);const _ay=document.getElementById('admYear');if(_ay)_ay.value=y} if(n)uname=n;
+  migrateCourses();
 }
 
 function mkC(p,i){return{id:(Date.now()+i).toString(),grade:'-',prevGrade:'-',expGrade:'-',status:'미수강',retake:false,retakePlan:false,takeSem:'',planSem:'',dc:p.dc||0,prereqRec:p.prereqRec||'',...p};}
@@ -1724,7 +1736,7 @@ function exportData(){
 function loadFile(e){
   const f=e.target.files[0];if(!f)return;
   const r=new FileReader();
-  r.onload=ev=>{try{const d=JSON.parse(ev.target.result);if(d.courses)C=d.courses;if(d.yr){yr=d.yr;const _ay=document.getElementById('admYear');if(_ay)_ay.value=yr;}if(d.uname)uname=d.uname;sv();updH();updStats();render();alert('✅ 불러오기 완료');}catch{alert('❌ 파일 형식 오류');}};
+  r.onload=ev=>{try{const d=JSON.parse(ev.target.result);if(d.courses)C=d.courses;if(d.yr){yr=d.yr;const _ay=document.getElementById('admYear');if(_ay)_ay.value=yr;}if(d.uname)uname=d.uname;migrateCourses();sv();updH();updStats();render();alert('✅ 불러오기 완료');}catch{alert('❌ 파일 형식 오류');}};
   r.readAsText(f);e.target.value='';
 }
 
