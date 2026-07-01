@@ -452,6 +452,7 @@ input[type=checkbox]{width:14px;height:14px;accent-color:var(--accent);cursor:po
     <button class="bulk-btn" onclick="bulkSetStatus('수강완료')">수강완료로</button>
     <button class="bulk-btn" onclick="bulkSetStatus('수강중')">수강중으로</button>
     <button class="bulk-btn" onclick="bulkSetStatus('수강예정')">수강예정으로</button>
+    <button class="bulk-btn" onclick="bulkSetStatus('미수강')">미수강으로</button>
     <button class="bulk-btn bulk-btn-grade" onclick="openBulkGradePop()">성적 설정</button>
   </div>
   <button class="bulk-clear" onclick="clearSelection()" title="선택 해제">✕</button>
@@ -1062,9 +1063,10 @@ function updStats(){
   const done=C.filter(c=>c.status==='수강완료');
   const doing=C.filter(c=>c.status==='수강중');
   const planned=C.filter(c=>c.status==='수강예정');
+  const projList=[...planned, ...doing]; // 예상성적 대상: 수강예정 + 수강중
   let earn=0,gs=0,gc=0;
   const cat={};
-  const catPlan={};   // 수강예정 학점 per category
+  const catPlan={};   // 수강예정+수강중 학점 per category
   const catGS={},catGC={};
 
   for(const c of done){
@@ -1081,18 +1083,18 @@ function updStats(){
     }
   }
 
-  // 수강예정 학점 집계 (실제 취득 예정 학점 — 항상 계산)
+  // 수강예정+수강중 학점 집계 (실제 취득 예정 학점 — 항상 계산)
   let planEarn=0;
-  for(const c of planned){
+  for(const c of projList){
     if(!c.retake){
       planEarn+=c.credits;
       catPlan[c.category]=(catPlan[c.category]||0)+c.credits;
     }
   }
 
-  // 예상성적(expGrade) 반영 계산 — 수강예정 과목 중 예상성적을 입력한 것만 GPA에 가중 반영
+  // 예상성적(expGrade) 반영 계산 — 수강예정/수강중 과목 중 예상성적을 입력한 것만 GPA에 가중 반영
   let projGS=gs, projGC=gc, projEarn=earn, projCount=0;
-  for(const c of planned){
+  for(const c of projList){
     if(c.retake) continue;
     projEarn += (c.credits||0);
     const eg = c.expGrade || '-';           // 안전장치: 필드 없어도 기본값
@@ -1346,8 +1348,8 @@ function render(){
         <span class="gchip ${gc}" onclick="openGradePop('${c.id}',this)" title="클릭해서 성적 변경">${c.grade}</span>
         ${showPrev?`<span class="prev-g" style="cursor:default" title="재수강 전 성적">전:${c.prevGrade}</span>`:''}
       </div>`;
-    } else if(isPlan){
-      // 수강예정 — 예상성적 선택 가능 (실제 grade와 별개 필드, 항상 안전 기본값 사용)
+    } else if(isPlan || isDoing){
+      // 수강예정·수강중 — 예상성적 선택 가능 (실제 grade와 별개 필드, 항상 안전 기본값 사용)
       const egc = gClass(curExpGrade);
       gradeCell=`<div class="gcell">
         <span class="gchip gc-exp ${egc}" onclick="openExpGradePop('${c.id}',this)" title="클릭해서 예상성적 입력">${curExpGrade}</span>
@@ -1443,7 +1445,7 @@ function setStatus(id,status){
     if(!c.takeSem && c.semester) c.takeSem=c.semester;
     c.planSem=''; c.expGrade='-';
   }
-  if(status==='수강중'){ c.planSem=''; c.expGrade='-'; }
+  if(status==='수강중'){ c.planSem=''; }
   if(status==='수강예정'){ c.grade='-'; c.takeSem=''; }
   if(status==='미수강'){ c.grade='-'; c.takeSem=''; c.planSem=''; c.expGrade='-'; }
   sv();updStats();render();
@@ -1805,8 +1807,9 @@ function bulkSetStatus(status){
     const c=C.find(x=>x.id===id); if(!c) continue;
     c.status=status;
     if(status==='수강완료'){ if(!c.takeSem && c.semester) c.takeSem=c.semester; c.planSem=''; c.expGrade='-'; }
-    if(status==='수강중'){ c.planSem=''; c.expGrade='-'; }
+    if(status==='수강중'){ c.planSem=''; }
     if(status==='수강예정'){ c.grade='-'; c.takeSem=''; }
+    if(status==='미수강'){ c.grade='-'; c.takeSem=''; c.planSem=''; c.expGrade='-'; }
   }
   sv();updStats();render();
 }
@@ -1831,12 +1834,12 @@ function bulkSetGrade(g){
   for(const id of selectedIds){
     const c=C.find(x=>x.id===id); if(!c) continue;
     if(c.status==='수강완료'){ c.grade=g; doneCount++; }
-    else if(c.status==='수강예정'){ c.expGrade=g; expCount++; }
+    else if(c.status==='수강예정'||c.status==='수강중'){ c.expGrade=g; expCount++; }
     else { skipCount++; }
   }
   sv();updStats();render();
   const pop=$id('gradePopup'); if(pop){ pop.style.display='none'; pop.style.bottom=''; pop.style.transform=''; }
-  if(skipCount>0) alert(`성적은 수강완료/수강예정 과목에만 적용돼요.\n적용됨: ${doneCount+expCount}개 · 건너뜀: ${skipCount}개`);
+  if(skipCount>0) alert(`성적은 수강완료/수강중/수강예정 과목에만 적용돼요.\n적용됨: ${doneCount+expCount}개 · 건너뜀: ${skipCount}개`);
 }
 
 function clearAll(){C=[];selectedIds.clear();sv();updStats();render();}
