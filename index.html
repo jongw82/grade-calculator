@@ -1,0 +1,1210 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>세종대 건축공학과 학점 계산기</title>
+<style>
+:root {
+  --bg:#f5f6fa; --surface:#fff; --surface2:#f0f2f8;
+  --border:#e2e6f0; --border2:#cdd3e3;
+  --accent:#4a6cf7; --accent-light:#eef1fe;
+  --green:#16a34a; --green-light:#dcfce7;
+  --yellow:#ca8a04; --yellow-light:#fef9c3;
+  --red:#dc2626; --red-light:#fee2e2;
+  --orange:#ea580c; --orange-light:#ffedd5;
+  --purple:#7c3aed; --purple-light:#ede9fe;
+  --blue:#0ea5e9; --blue-light:#e0f2fe;
+  --gray:#94a3b8; --gray-light:#f1f5f9;
+  --text:#1e2235; --text2:#4a5278; --muted:#8892b0;
+  --font:'Pretendard','Noto Sans KR',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100vh;font-size:14px}
+
+/* HEADER */
+.header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 28px;display:flex;align-items:center;justify-content:space-between;height:60px;position:sticky;top:0;z-index:100;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.hL{display:flex;align-items:center;gap:12px}
+.logo{width:34px;height:34px;background:var(--accent);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:900;color:#fff}
+.h-title{font-size:15px;font-weight:700;letter-spacing:-.3px}
+.h-sub{font-size:11px;color:var(--muted);margin-top:1px}
+.uchip{display:flex;align-items:center;gap:10px}
+.uavatar{width:32px;height:32px;border-radius:50%;background:var(--accent-light);border:2px solid var(--accent);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--accent)}
+.utext{text-align:right}
+.uname{font-size:13px;font-weight:700}
+.umeta{font-size:11px;color:var(--muted);margin-top:1px}
+.icon-btn{background:none;border:none;cursor:pointer;color:var(--muted);padding:4px 7px;border-radius:6px;font-size:13px;transition:all .15s;font-family:var(--font)}
+.icon-btn:hover{background:var(--surface2);color:var(--text2)}
+
+/* SUMMARY */
+.sbar{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:16px 28px;background:var(--surface);border-bottom:1px solid var(--border)}
+.scard{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:13px 16px;transition:box-shadow .2s}
+.scard:hover{box-shadow:0 2px 8px rgba(74,108,247,.1);border-color:#c5cdee}
+.slabel{font-size:11px;color:var(--muted);margin-bottom:4px;font-weight:500}
+.sval{font-size:24px;font-weight:800;letter-spacing:-1px}
+.sval.gpa{color:var(--accent)}.sval.earn{color:var(--green)}.sval.rem{color:var(--orange)}
+.ssub{font-size:11px;color:var(--muted);margin-top:3px}
+
+/* CREDIT CARDS */
+.csec{padding:14px 28px;background:var(--surface);border-bottom:1px solid var(--border)}
+.csec-title{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between}
+.ytag{background:var(--accent);color:#fff;font-size:10px;padding:2px 8px;border-radius:999px;font-weight:700}
+.ccards{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}
+.ccard{background:var(--bg);border:1.5px solid var(--border);border-radius:12px;padding:12px 14px;transition:all .25s}
+.ccard.done{border-color:var(--green);background:var(--green-light)}
+.cc-lbl{font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-bottom:7px}
+.ccard.done .cc-lbl{color:var(--green)}
+.cc-n{display:flex;align-items:baseline;gap:2px;margin-bottom:6px}
+.cc-e{font-size:24px;font-weight:800;letter-spacing:-1px;color:var(--text)}
+.ccard.done .cc-e{color:var(--green)}
+.cc-sep{font-size:13px;color:var(--border2);margin:0 2px}
+.cc-need{font-size:12px;font-weight:600;color:var(--muted)}
+.cc-bar{height:5px;background:var(--border);border-radius:999px;overflow:hidden;position:relative}
+.cc-fill{height:100%;border-radius:999px;transition:width .5s}
+.c0{background:var(--accent)}.c1{background:var(--purple)}.c2{background:var(--yellow)}.c3{background:var(--orange)}.c4{background:linear-gradient(90deg,var(--accent),var(--green))}
+.ccard.done .cc-fill{background:var(--green)}
+.cc-st{font-size:10px;color:var(--muted);margin-top:4px}
+.ccard.done .cc-st{color:var(--green);font-weight:600}
+
+/* CONTROLS */
+.ctrl{display:flex;gap:8px;padding:11px 28px;align-items:center;flex-wrap:wrap;background:var(--surface);border-bottom:1px solid var(--border)}
+.yr-wrap{display:flex;align-items:center;gap:7px}
+.yr-wrap label{font-size:12px;color:var(--muted);font-weight:500}
+select,input[type=text],input[type=number]{font-family:var(--font);outline:none}
+select{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:8px;font-size:13px;cursor:pointer;transition:border-color .2s}
+select:focus{border-color:var(--accent)}
+.btn{padding:6px 13px;border-radius:8px;border:none;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:5px;font-family:var(--font);white-space:nowrap}
+.btn-p{background:var(--accent);color:#fff}.btn-p:hover{background:#3a5ce8}
+.btn-g{background:var(--surface);color:var(--text2);border:1px solid var(--border)}.btn-g:hover{border-color:var(--accent);color:var(--accent)}
+.btn-d{background:transparent;color:var(--red);border:1px solid #fca5a5}.btn-d:hover{background:var(--red-light)}
+.sbox{flex:1;min-width:160px;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:6px 12px;border-radius:8px;font-size:13px;transition:border-color .2s}
+.sbox:focus{border-color:var(--accent);background:var(--surface)}
+.sbox::placeholder{color:var(--muted)}
+.ftabs{display:flex;gap:4px}
+.ftab{padding:4px 10px;border-radius:999px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--muted);transition:all .15s;font-family:var(--font)}
+.ftab.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.ftab:hover:not(.on){border-color:var(--accent);color:var(--accent)}
+
+/* TABLE */
+.twrap{padding:0 28px 80px;overflow-x:auto}
+table{width:100%;border-collapse:separate;border-spacing:0 3px;margin-top:12px}
+thead th{padding:7px 8px;font-size:11px;color:var(--muted);text-align:left;text-transform:uppercase;letter-spacing:.5px;font-weight:600;border-bottom:1.5px solid var(--border);white-space:nowrap;cursor:pointer;user-select:none}
+thead th:hover{color:var(--accent)}
+tbody tr{background:var(--surface);transition:box-shadow .12s}
+tbody tr:hover{box-shadow:0 2px 8px rgba(74,108,247,.07);position:relative;z-index:1}
+tbody tr.doing{background:#fffbf0}
+tbody tr.doner{background:#f0fdf4}
+tbody tr.planning{background:#faf5ff}
+tbody td{padding:8px 8px;border-top:1px solid var(--border);border-bottom:1px solid var(--border);vertical-align:middle;font-size:13px}
+tbody td:first-child{border-left:1px solid var(--border);border-radius:10px 0 0 10px}
+tbody td:last-child{border-right:1px solid var(--border);border-radius:0 10px 10px 0}
+
+/* INLINE GRADE CHIPS — clearly clickable button style */
+.gcell{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.gchip{
+  display:inline-flex;align-items:center;justify-content:center;
+  padding:4px 9px;border-radius:7px;font-size:12px;font-weight:700;
+  cursor:pointer;border:1.5px solid transparent;
+  transition:all .12s;white-space:nowrap;user-select:none;
+  box-shadow:0 1px 3px rgba(0,0,0,.08);
+  min-width:38px;
+}
+.gchip:hover{transform:translateY(-1px);box-shadow:0 3px 8px rgba(0,0,0,.15)}
+.gchip:active{transform:translateY(0);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+/* disabled (not done) */
+.gchip.disabled{cursor:default;opacity:.35;box-shadow:none;transform:none!important}
+.gc-{background:#f8fafc;color:#94a3b8;border-color:#e2e8f0}
+.gc-Ap,.gc-A0{background:var(--green-light);color:var(--green);border-color:#4ade80}
+.gc-Bp,.gc-B0{background:var(--accent-light);color:var(--accent);border-color:#818cf8}
+.gc-Cp,.gc-C0{background:var(--yellow-light);color:var(--yellow);border-color:#facc15}
+.gc-Dp,.gc-D0{background:var(--orange-light);color:var(--orange);border-color:#fb923c}
+.gc-F{background:var(--red-light);color:var(--red);border-color:#f87171}
+.gc-P{background:#f0fdf4;color:#15803d;border-color:#86efac}
+.gc-NP{background:var(--red-light);color:var(--red);border-color:#f87171}
+
+/* grade popup */
+.grade-popup{position:absolute;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:8px;box-shadow:0 8px 24px rgba(0,0,0,.14);z-index:300;display:flex;flex-wrap:wrap;gap:4px;width:216px}
+.grade-popup .gchip{cursor:pointer;font-size:11px;padding:3px 7px}
+.grade-popup .gchip.cur{outline:2px solid var(--accent);outline-offset:2px}
+
+/* STATUS BUTTONS — inline 3-state */
+.status-cell{display:flex;gap:4px;align-items:center}
+.sbtn{padding:3px 8px;border-radius:6px;border:1px solid var(--border);font-size:11px;font-weight:600;cursor:pointer;font-family:var(--font);background:var(--gray-light);color:var(--muted);transition:all .12s;white-space:nowrap}
+.sbtn:hover{border-color:var(--accent);color:var(--accent)}
+.sbtn.s-done{background:var(--green-light);color:var(--green);border-color:#86efac}
+.sbtn.s-doing{background:var(--blue-light);color:var(--blue);border-color:#7dd3fc}
+.sbtn.s-plan{background:var(--purple-light);color:var(--purple);border-color:#c4b5fd}
+.sbtn.s-none{background:var(--gray-light);color:var(--muted);border-color:var(--border)}
+/* 예정학기 인라인 선택 버튼 */
+.plan-sem-wrap{display:flex;flex-direction:column;gap:3px}
+.plan-sem-row{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-top:3px}
+
+/* SEMESTER POPUP */
+.sem-popup{position:absolute;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);z-index:300;min-width:240px}
+.sem-popup-title{font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px}
+.sem-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-bottom:6px}
+.sp-btn{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:4px 0;font-size:11px;font-weight:600;cursor:pointer;color:var(--muted);text-align:center;font-family:var(--font);transition:all .12s}
+.sp-btn.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.sp-btn:hover:not(.on){border-color:var(--accent);color:var(--accent)}
+.sea-row{display:flex;gap:5px;align-items:center;margin-top:4px;flex-wrap:wrap}
+.sea-row span{font-size:11px;color:var(--muted)}
+.sea-yr{width:54px;padding:3px 6px;border:1px solid var(--border);border-radius:5px;font-size:11px;font-family:var(--font);color:var(--text);background:var(--bg)}
+.sea-yr:focus{outline:none;border-color:var(--accent)}
+.sea-btn{padding:3px 8px;border:1px solid var(--border);border-radius:5px;font-size:11px;font-family:var(--font);font-weight:600;cursor:pointer;color:var(--muted);background:var(--surface2);transition:all .12s}
+.sea-btn.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.sea-btn:hover:not(.on){border-color:var(--accent);color:var(--accent)}
+.sem-clear{margin-top:6px;width:100%;padding:4px;border:none;border-radius:5px;font-size:11px;cursor:pointer;font-family:var(--font);color:var(--muted);background:var(--surface2)}
+.sem-clear:hover{color:var(--red)}
+
+/* prereq pills */
+.prereq-wrap{display:flex;flex-direction:column;gap:3px;min-width:100px}
+.prereq-pill{display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border-radius:5px;font-size:11px;white-space:nowrap;max-width:160px;width:fit-content}
+.prereq-pill .pr-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* 필수선수: bold + 파란 테두리 (미이수) / 초록 (이수) */
+.pr-req{border:1.5px solid #93c5fd;background:#eff6ff;font-weight:700;color:#1d4ed8}
+.pr-req.pr-ok{border-color:#4ade80;background:var(--green-light);color:var(--green)}
+/* 권장선수: italic + 회색 (미이수) / 초록 (이수) */
+.pr-rec{border:1px dashed var(--border2);background:var(--surface2);font-weight:400;font-style:italic;color:var(--muted)}
+.pr-rec.pr-ok{border:1px solid #4ade80;background:var(--green-light);color:var(--green);font-style:normal;font-weight:500}
+.pr-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0;margin-top:1px}
+.pr-dot.ok{background:var(--green)}
+.pr-dot.req{background:#3b82f6}
+.pr-dot.rec{background:var(--gray)}
+/* legend */
+.pr-legend{display:inline-flex;gap:8px;font-size:10px;color:var(--muted);margin-left:4px;align-items:center;white-space:nowrap}
+.pr-legend span{display:inline-flex;align-items:center;gap:3px}
+/* takeSem clickable chip */
+.tsem-btn{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:7px;font-size:12px;cursor:pointer;border:1.5px dashed var(--border2);background:var(--surface2);color:var(--muted);transition:all .15s;user-select:none;font-family:var(--font)}
+.tsem-btn:hover{border-color:var(--accent);background:var(--accent-light);color:var(--accent)}
+.tsem-btn.filled{border-style:solid;border-color:#93c5fd;background:#eff6ff;color:#1d4ed8;font-weight:600}
+.tsem-btn .ti{font-size:11px}
+
+/* retake cell */
+.retake-cell{display:flex;align-items:center;gap:5px;white-space:nowrap;flex-wrap:wrap}
+.cb{width:15px;height:15px;border:1.5px solid var(--border2);border-radius:4px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;flex-shrink:0;background:var(--surface)}
+.cb.on{background:var(--orange);border-color:var(--orange)}
+.cb.on::after{content:'✓';color:#fff;font-size:9px;font-weight:700}
+/* 재수강예정 태그 */
+.retake-plan-btn{padding:2px 7px;border-radius:5px;font-size:10px;font-weight:700;cursor:pointer;border:1.5px solid #c4b5fd;background:#f5f3ff;color:var(--purple);font-family:var(--font);transition:all .12s}
+.retake-plan-btn.on{background:var(--purple);border-color:var(--purple);color:#fff}
+.retake-plan-btn:hover{background:var(--purple);color:#fff}
+/* 재수강예정 행 강조 */
+tbody tr.retake-plan-row td{border-top-color:#ddd6fe;border-bottom-color:#ddd6fe}
+tbody tr.retake-plan-row{background:#faf5ff}
+.prev-g{font-size:10px;color:var(--orange);background:var(--orange-light);border:1px solid #fdba74;border-radius:5px;padding:1px 5px;font-weight:600;cursor:pointer}
+.prev-g:hover{filter:brightness(.93)}
+
+/* badge — internal key stays unchanged (전필/전선/교필/교선/학기초), label shown via catLabel() */
+.badge{display:inline-flex;align-items:center;padding:2px 7px;border-radius:999px;font-size:11px;font-weight:600;white-space:nowrap}
+/* category as clickable select — inherits badge color classes */
+.cat-select{display:inline-block;width:88px;padding:2px 6px;border-radius:999px;font-size:11px;font-weight:600;white-space:nowrap;cursor:pointer;outline:none;appearance:none;-webkit-appearance:none;border-width:1px;border-style:solid;font-family:var(--font);transition:box-shadow .15s;text-align:center;text-align-last:center}
+.cat-select:hover{box-shadow:0 0 0 2px rgba(74,108,247,.2)}
+.cat-select:focus{box-shadow:0 0 0 2px rgba(74,108,247,.35)}
+.badge-전필{background:var(--accent-light);color:var(--accent);border:1px solid #c5d0fb}
+.badge-전선{background:var(--purple-light);color:var(--purple);border:1px solid #d8d0f8}
+.badge-교필{background:var(--yellow-light);color:var(--yellow);border:1px solid #fde68a}       /* 공통교양필수 */
+.badge-교선{background:var(--green-light);color:var(--green);border:1px solid #bbf7d0}        /* 균형교양필수 */
+.badge-학기초{background:var(--orange-light);color:var(--orange);border:1px solid #fed7aa}    /* 학문기초교양필수 */
+.badge-기타{background:var(--surface2);color:var(--muted);border:1px solid var(--border)}
+
+.del-btn{background:none;border:none;cursor:pointer;color:var(--muted);font-size:13px;padding:3px 5px;border-radius:5px;transition:all .15s}
+.del-btn:hover{background:var(--red-light);color:var(--red)}
+.chk-col{width:32px;text-align:center}
+input[type=checkbox]{width:14px;height:14px;accent-color:var(--accent);cursor:pointer}
+.empty-state{text-align:center;padding:52px;color:var(--muted)}
+.empty-state .icon{font-size:36px;margin-bottom:12px}
+
+/* FAB */
+.fab{position:fixed;bottom:24px;right:24px;display:flex;flex-direction:column;gap:7px;align-items:flex-end;z-index:50}
+.fab-btn{background:var(--surface);color:var(--text2);border:1px solid var(--border);border-radius:999px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);box-shadow:0 2px 8px rgba(0,0,0,.09);display:flex;align-items:center;gap:4px;opacity:.6;transition:all .15s}
+.fab-btn:hover{opacity:1;border-color:var(--accent);color:var(--accent)}
+
+/* ADD MODAL (only for new courses) */
+.overlay{position:fixed;inset:0;background:rgba(15,20,50,.35);backdrop-filter:blur(2px);z-index:200;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
+.overlay.open{opacity:1;pointer-events:all}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;width:540px;max-width:95vw;max-height:90vh;overflow-y:auto;transform:translateY(8px);transition:transform .2s;box-shadow:0 8px 32px rgba(0,0,0,.12)}
+.overlay.open .modal{transform:translateY(0)}
+.mhdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.mtitle{font-size:16px;font-weight:700}
+.mclose{background:none;border:none;color:var(--muted);cursor:pointer;font-size:20px;line-height:1}
+.mclose:hover{color:var(--text)}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.fg{display:flex;flex-direction:column;gap:5px}
+.fg.full{grid-column:1/-1}
+.flbl{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.finp{background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:8px;font-size:13px;font-family:var(--font);transition:border-color .2s;width:100%}
+.finp:focus{border-color:var(--accent);background:var(--surface)}
+.mfooter{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+/* sem picker in modal */
+.sp{display:flex;flex-wrap:wrap;gap:4px}
+.spb{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:4px 9px;font-size:11px;font-family:var(--font);font-weight:600;cursor:pointer;color:var(--muted);transition:all .12s}
+.spb.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.spb:hover:not(.on){border-color:var(--accent);color:var(--accent)}
+.sea-row2{display:flex;gap:5px;align-items:center;margin-top:5px;flex-wrap:wrap}
+.sea-row2 span{font-size:11px;color:var(--muted)}
+/* grade picker in modal */
+.gpick{display:flex;flex-wrap:wrap;gap:3px}
+.gpick .gchip{font-size:12px;padding:4px 9px;cursor:pointer}
+.gpick .gchip.cur{outline:2px solid var(--accent);outline-offset:1px}
+/* onboard */
+.ob-modal{width:400px}
+.ob-title{font-size:19px;font-weight:800;margin-bottom:5px}
+.ob-sub{font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.6}
+.ob-f{display:flex;flex-direction:column;gap:5px;margin-bottom:13px}
+/* retake section modal */
+.rt-sec{background:var(--orange-light);border:1px solid #fdba74;border-radius:10px;padding:11px;margin-top:2px}
+.rt-sec-title{font-size:11px;font-weight:700;color:var(--orange);text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px}
+/* cb modal */
+.cbm{width:16px;height:16px;border:1.5px solid var(--border2);border-radius:4px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;background:var(--surface);flex-shrink:0}
+.cbm.on{background:var(--green);border-color:var(--green)}
+.cbm.on::after{content:'✓';color:#fff;font-size:10px;font-weight:700}
+.cbm-wrap{display:inline-flex;align-items:center;gap:6px;cursor:pointer;user-select:none}
+.cbm-lbl{font-size:12px;color:var(--text2)}
+
+@media(max-width:1200px){.ccards{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:900px){.sbar,.csec,.ctrl{padding:12px 16px}.ccards{grid-template-columns:repeat(2,1fr)}.twrap{padding:0 16px 80px}.header{padding:0 16px}}
+/* semester tab row special style */
+.sem-tab-row{background:var(--surface2);border-top:1px dashed var(--border);border-bottom:1px solid var(--border)}
+.sem-tab-row .ftab{font-size:11px;padding:3px 8px}
+.sem-tab-row .ftab.on{background:var(--text2);border-color:var(--text2)}
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="hL">
+    <div class="logo">學</div>
+    <div><div class="h-title">세종대 건축공학과 학점 계산기</div><div class="h-sub">Sejong University · Architectural Engineering</div></div>
+  </div>
+  <div class="uchip">
+    <div class="utext"><div class="uname" id="hName">—</div><div class="umeta" id="hMeta">—</div></div>
+    <div class="uavatar" id="hAv">?</div>
+    <button class="icon-btn" onclick="openOnboard(true)">✏️</button>
+  </div>
+</header>
+
+<div class="sbar">
+  <div class="scard"><div class="slabel">평균 학점 (GPA)</div><div class="sval gpa" id="sGPA">—</div><div class="ssub">4.5 만점</div></div>
+  <div class="scard"><div class="slabel">취득 학점</div><div class="sval earn" id="sEarn">0</div><div class="ssub">수강완료 기준</div></div>
+  <div class="scard"><div class="slabel">졸업까지 남은 학점</div><div class="sval rem" id="sRem">—</div><div class="ssub" id="sRemT">총 130학점 기준</div></div>
+  <div class="scard"><div class="slabel">등록 과목 수</div><div class="sval" id="sCnt">0</div><div class="ssub" id="sCntS">—</div></div>
+</div>
+
+<!-- 분류별 평균 GPA -->
+<div style="padding:12px 28px;background:var(--surface);border-bottom:1px solid var(--border)">
+  <div style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px">분류별 평균 학점</div>
+  <div id="catGPA" style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px"></div>
+</div>
+
+<div class="csec">
+  <div class="csec-title"><span>영역별 이수 현황</span><span class="ytag" id="ytag">—</span></div>
+  <div class="ccards" id="ccards"></div>
+</div>
+
+<div class="ctrl" style="gap:6px">
+  <button class="btn btn-p" onclick="openAdd()">+ 과목 추가</button>
+  <input class="sbox" id="searchBox" type="text" placeholder="과목명 검색…" oninput="render()">
+  <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;flex:1">
+    <span style="font-size:11px;color:var(--muted);font-weight:600;white-space:nowrap">분류</span>
+    <div class="ftabs" id="catTabs">
+      <button class="ftab on" onclick="setF('전체',this)">전체</button>
+      <button class="ftab" onclick="setF('전필',this)">전공필수</button>
+      <button class="ftab" onclick="setF('전선',this)">전공선택</button>
+      <button class="ftab" onclick="setF('교필',this)">공통교필</button>
+      <button class="ftab" onclick="setF('학기초',this)">학문기초교필</button>
+      <button class="ftab" onclick="setF('교선',this)">균형교필</button>
+      <button class="ftab" onclick="setF('기타',this)">교양선택</button>
+    </div>
+  </div>
+</div>
+<div class="ctrl" style="gap:6px;border-top:none;padding-top:8px;padding-bottom:8px;background:var(--surface2)">
+  <span style="font-size:11px;color:var(--muted);font-weight:600;white-space:nowrap">수강 상태</span>
+  <div class="ftabs" id="statusTabs">
+    <button class="ftab on" onclick="setStatusF('전체',this)">전체</button>
+    <button class="ftab" onclick="setStatusF('수강완료',this)">수강완료</button>
+    <button class="ftab" onclick="setStatusF('수강중',this)">수강중</button>
+    <button class="ftab" onclick="setStatusF('수강예정',this)">수강예정</button>
+    <button class="ftab" onclick="setStatusF('재수강',this)">재수강</button>
+  </div>
+</div>
+
+<!-- 학기별 탭 -->
+<div class="ctrl sem-tab-row" style="gap:6px;padding-top:8px;padding-bottom:8px;border-top:none">
+  <span style="font-size:11px;color:var(--muted);font-weight:600;white-space:nowrap;padding-right:4px">학기별 보기</span>
+  <div class="ftabs" id="semTabs">
+    <button class="ftab on" onclick="setSemF('전체',this)">전체 학기</button>
+    <button class="ftab" onclick="setSemF('1-1',this)">1-1</button>
+    <button class="ftab" onclick="setSemF('1-2',this)">1-2</button>
+    <button class="ftab" onclick="setSemF('2-1',this)">2-1</button>
+    <button class="ftab" onclick="setSemF('2-2',this)">2-2</button>
+    <button class="ftab" onclick="setSemF('3-1',this)">3-1</button>
+    <button class="ftab" onclick="setSemF('3-2',this)">3-2</button>
+    <button class="ftab" onclick="setSemF('4-1',this)">4-1</button>
+    <button class="ftab" onclick="setSemF('4-2',this)">4-2</button>
+    <button class="ftab" onclick="setSemF('계절',this)">계절학기</button>
+    <button class="ftab" onclick="setSemF('미지정',this)">미지정</button>
+  </div>
+</div>
+
+<div class="twrap">
+  <!-- 학기별 요약 (전체 학기가 아닐 때만 표시) -->
+  <div id="semSummary" style="display:none;margin:12px 0 4px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 20px">
+    <div style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.7px;margin-bottom:10px" id="semSummaryTitle">—</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px" id="semSummaryCards"></div>
+  </div>
+
+  <table>
+    <thead><tr>
+      <th onclick="sortBy('name')">강의명</th>
+      <th onclick="sortBy('credits')">학점</th>
+      <th onclick="sortBy('semester')">권장학기</th>
+      <th>이수/예정학기</th>
+      <th onclick="sortBy('category')">분류</th>
+      <th>성적</th>
+      <th>수강 상태</th>
+      <th>선수강 <span style="font-size:9px;font-weight:400;color:var(--muted);font-style:normal;letter-spacing:0">(<span style="color:#1d4ed8;font-weight:700">굵</span>=필수 <span style="font-style:italic;color:var(--gray)">기</span>=권장)</span></th>
+      <th>재수강</th>
+      <th></th>
+    </tr></thead>
+    <tbody id="tBody"></tbody>
+  </table>
+  <div id="empty" class="empty-state" style="display:none">
+    <div class="icon">📚</div><p>+ 과목 추가 버튼으로 과목을 등록하세요.</p>
+  </div>
+</div>
+
+<div class="fab">
+  <button class="fab-btn" onclick="exportData()">💾 내보내기</button>
+  <button class="fab-btn" onclick="document.getElementById('importFile').click()">📂 불러오기</button>
+  <input type="file" id="importFile" accept=".json" style="display:none" onchange="loadFile(event)">
+</div>
+
+<!-- 과목 추가 모달 (새 과목만; 기존 과목은 인라인 수정) -->
+<div class="overlay" id="addOv" onclick="closeAdd(event)">
+ <div class="modal">
+  <div class="mhdr"><div class="mtitle">과목 추가</div><button class="mclose" onclick="closeAddDirect()">×</button></div>
+  <div class="fgrid">
+    <div class="fg full"><label class="flbl">강의명 *</label><input class="finp" id="aN" type="text" placeholder="예: 구조역학1"></div>
+    <div class="fg"><label class="flbl">이수 학점</label><input class="finp" id="aC" type="number" min="1" max="6" value="3"></div>
+    <div class="fg"><label class="flbl">설계 학점</label><input class="finp" id="aD" type="number" min="0" max="6" value="0"></div>
+    <div class="fg"><label class="flbl">분류</label>
+      <select class="finp" id="aCat">
+        <option value="전필">전공필수 (전필)</option><option value="전선">전공선택 (전선)</option>
+        <option value="교필">공통교양필수 (공통교필)</option><option value="교선">균형교양필수 (균형교필)</option>
+        <option value="학기초">학문기초교양필수 (학기초)</option><option value="기타">교양선택 (기타)</option>
+      </select>
+    </div>
+    <div class="fg"><label class="flbl">필수선수 과목</label><input class="finp" id="aPre" type="text" placeholder="예: 구조역학1"></div>
+    <div class="fg"><label class="flbl">권장선수 과목</label><input class="finp" id="aPreRec" type="text" placeholder="예: 건축구조시스템"></div>
+    <div class="fg full"><label class="flbl">권장 학기</label>
+      <div class="sp" id="aRecSP"></div>
+    </div>
+    <div class="fg full">
+      <label class="flbl">이수 학기 <span style="font-size:10px;color:var(--accent);font-weight:400">(수강완료 기준 — 미선택 시 권장학기로 자동 설정)</span></label>
+      <div class="sp" id="aTakeSP"></div>
+      <div class="sea-row2" style="margin-top:5px">
+        <span style="font-size:11px;color:var(--muted)">계절:</span>
+        <input class="sea-yr" id="aSeaYrInp" type="number" placeholder="2024" min="2019" max="2030" oninput="aSeaYrChange()">
+        <button class="sea-btn" id="aSeaSumBtn" onclick="toggleASea('summer')">여름</button>
+        <button class="sea-btn" id="aSeaWinBtn" onclick="toggleASea('winter')">겨울</button>
+      </div>
+    </div>
+  </div>
+  <div class="mfooter">
+    <button class="btn btn-g" onclick="closeAddDirect()">취소</button>
+    <button class="btn btn-p" onclick="saveAdd()">추가</button>
+  </div>
+ </div>
+</div>
+
+<!-- 이전 성적 수정 미니 모달 -->
+<div class="overlay" id="prevGOv" onclick="closePrevG(event)">
+ <div class="modal" style="width:300px;padding:20px">
+  <div class="mhdr"><div class="mtitle" style="font-size:14px">↩ 재수강 전 성적</div><button class="mclose" onclick="closePrevGDirect()">×</button></div>
+  <div class="gpick" id="prevGPick" style="margin-bottom:14px"></div>
+  <div class="mfooter"><button class="btn btn-p" style="width:100%;justify-content:center" onclick="savePrevG()">저장</button></div>
+ </div>
+</div>
+
+<!-- 가입/정보수정 모달 -->
+<div class="overlay" id="obOv">
+ <div class="modal ob-modal">
+  <div class="ob-title" id="obTit">👋 처음 오셨군요!</div>
+  <div class="ob-sub" id="obSub">이름과 입학년도를 입력하면 교과과정이 자동으로 설정됩니다.</div>
+  <div class="ob-f"><label class="flbl">이름 *</label><input class="finp" id="obN" type="text" placeholder="홍길동"></div>
+  <div class="ob-f"><label class="flbl">입학년도 *</label>
+    <select class="finp" id="obY">
+      <option value="2026">2026학번</option><option value="2025">2025학번</option>
+      <option value="2024">2024학번</option><option value="2023">2023학번</option>
+      <option value="2022" selected>2022학번</option><option value="2021">2021학번</option>
+      <option value="2020">2020학번</option><option value="2019">2019학번</option>
+    </select>
+  </div>
+  <div class="mfooter"><button class="btn btn-p" style="width:100%;justify-content:center" onclick="saveOnboard()">시작하기</button></div>
+ </div>
+</div>
+
+<!-- 떠있는 팝업들 -->
+<div id="gradePopup" class="grade-popup" style="display:none"></div>
+<div id="semPopup" class="sem-popup" style="display:none"></div>
+
+<!-- 재수강 학기 선택 팝업 -->
+<div id="retakeSemBg" onclick="closeRetakeSemPop()" style="display:none;position:fixed;inset:0;background:rgba(15,20,50,.35);z-index:250;backdrop-filter:blur(2px)"></div>
+<div id="retakeSemPopup" class="sem-popup" style="display:none;z-index:260;min-width:300px;padding:16px"></div>
+
+<script>
+// ── DATA ──
+const GRAD={
+  2026:{공통:12,균형:9,학기초:13,전필:21,전선:39,total:130},
+  2025:{공통:13,균형:9,학기초:12,전필:21,전선:39,total:130},
+  2024:{공통:13,균형:9,학기초:12,전필:21,전선:39,total:130},
+  2023:{공통:13,균형:6,학기초:30,전필:27,전선:36,total:130},
+  2022:{공통:13,균형:6,학기초:30,전필:27,전선:36,total:130},
+  2021:{공통:14,균형:0,학기초:24,전필:27,전선:36,total:130},
+  2020:{공통:14,균형:0,학기초:24,전필:27,전선:36,total:130},
+  2019:{공통:14,균형:0,학기초:21,전필:27,전선:36,total:130},
+};
+const GMAP={'A+':4.5,'A0':4.0,'B+':3.5,'B0':3.0,'C+':2.5,'C0':2.0,'D+':1.5,'D0':1.0,'F':0,'P':null,'NP':null,'-':null};
+const GRADES=['-','A+','A0','B+','B0','C+','C0','D+','D0','F','P','NP'];
+const SEMS=['1-1','1-2','2-1','2-2','3-1','3-2','4-1','4-2'];
+
+// gKey: grade → css class suffix (. and + → safe chars)
+const gKey=g=>g.replace('+','p').replace('-','');
+function gClass(g){
+  const k=gKey(g);
+  return`gc-${k||'-'}`;
+}
+
+// 교과과정 프리셋 — 학번별 데이터를 여기에 추가
+// 예시: const PRESET_2022 = [ {name:'과목명', credits:3, dc:0, semester:'1-1', category:'전필', prereq:'', prereqRec:''}, ... ];
+// const PRESETS = { 2022: PRESET_2022 };
+const PRESETS = {};
+
+// ── STATE ──
+let C=[],yr=2022,uname='',filt='전체',statusFilt='전체',semFilt='전체',sCol=null,sAsc=true;
+// popup target tracking
+let popGId=null, popSId=null, popSField=null, prevGId=null, prevGVal='-';
+// add modal sem state
+let aRecSem='', aTakeSem='', aSeaType='', aSeaYr='';
+
+// ── STORAGE ──
+const sv=()=>{localStorage.setItem('sj_c',JSON.stringify(C));localStorage.setItem('sj_y',yr);localStorage.setItem('sj_n',uname)};
+function ld(){
+  const c=localStorage.getItem('sj_c'),y=localStorage.getItem('sj_y'),n=localStorage.getItem('sj_n');
+  if(c)C=JSON.parse(c); if(y){yr=parseInt(y);const _ay=document.getElementById('admYear');if(_ay)_ay.value=y} if(n)uname=n;
+}
+function mkC(p,i){return{id:(Date.now()+i).toString(),grade:'-',prevGrade:'-',status:'미수강',retake:false,retakePlan:false,takeSem:'',planSem:'',dc:p.dc||0,prereqRec:p.prereqRec||'',...p};}
+
+// ── ONBOARD ──
+function openOnboard(edit=false){
+  document.getElementById('obTit').textContent=edit?'✏️ 정보 수정':'👋 처음 오셨군요!';
+  document.getElementById('obSub').style.display=edit?'none':'block';
+  if(edit){document.getElementById('obN').value=uname;document.getElementById('obY').value=yr;}
+  else{document.getElementById('obN').value='';document.getElementById('obY').value='2022';}
+  document.getElementById('obOv').classList.add('open');
+  setTimeout(()=>document.getElementById('obN').focus(),80);
+}
+function saveOnboard(){
+  const n=document.getElementById('obN').value.trim(),y=parseInt(document.getElementById('obY').value);
+  if(!n)return;
+  const first=!uname,yc=y!==yr;
+  uname=n;
+  if(first||yc){
+    yr=y;const _ay=document.getElementById('admYear');if(_ay)_ay.value=y;
+    if(PRESETS[y]){
+      if(!first&&C.length>0&&!confirm(`${y}학번 교과과정으로 초기화합니다. 계속할까요?`)){document.getElementById('obOv').classList.remove('open');return;}
+      C=PRESETS[y].map((p,i)=>mkC(p,i));
+    } else if(first) C=[];
+  }
+  sv();updH();updStats();render();document.getElementById('obOv').classList.remove('open');
+}
+function updH(){
+  document.getElementById('hAv').textContent=uname?uname[0]:'?';
+  document.getElementById('hName').textContent=uname||'—';
+  document.getElementById('hMeta').textContent=yr?`${yr}학번 · 건축공학과`:'—';
+}
+function setAdmYear(y){
+  const ny=parseInt(y);if(ny===yr)return;
+  if(!confirm(PRESETS[ny]?`${ny}학번으로 변경하면 교과과정이 초기화됩니다. 계속할까요?`:`${ny}학번으로 변경합니다. 계속할까요?`)){const _ay=document.getElementById('admYear');if(_ay)_ay.value=yr;return;}
+  yr=ny;if(PRESETS[ny])C=PRESETS[ny].map((p,i)=>mkC(p,i));
+  sv();updH();updStats();render();
+}
+
+// ── STATS ──
+function updStats(){
+  const req=GRAD[yr]||GRAD[2022];
+  const done=C.filter(c=>c.status==='수강완료');
+  const doing=C.filter(c=>c.status==='수강중');
+  const planned=C.filter(c=>c.status==='수강예정');
+  let earn=0,gs=0,gc=0;
+  const cat={};
+  const catPlan={};   // 수강예정 학점 per category
+  const catGS={},catGC={};
+
+  for(const c of done){
+    if(c.retake) continue;
+    const gp=GMAP[c.grade];
+    if(c.grade!=='F'&&c.grade!=='NP'){
+      earn+=c.credits;
+      cat[c.category]=(cat[c.category]||0)+c.credits;
+    }
+    if(gp!=null){
+      gs+=gp*c.credits; gc+=c.credits;
+      catGS[c.category]=(catGS[c.category]||0)+gp*c.credits;
+      catGC[c.category]=(catGC[c.category]||0)+c.credits;
+    }
+  }
+
+  // 수강예정 학점 집계
+  let planEarn=0;
+  for(const c of planned){
+    if(!c.retake){
+      planEarn+=c.credits;
+      catPlan[c.category]=(catPlan[c.category]||0)+c.credits;
+    }
+  }
+
+  document.getElementById('sGPA').textContent=gc>0?(gs/gc).toFixed(2):'—';
+  document.getElementById('sEarn').textContent=earn;
+  document.getElementById('sRem').textContent=Math.max(0,req.total-earn);
+  document.getElementById('sRemT').textContent=`총 ${req.total}학점 기준`;
+  document.getElementById('sCnt').textContent=C.length;
+  document.getElementById('sCntS').textContent=`완료 ${done.length} · 수강중 ${doing.length} · 미수강 ${C.filter(c=>c.status==='미수강').length}`;
+  document.getElementById('ytag').textContent=`${yr}학번`;
+
+  // 분류별 GPA 카드
+  const majGS=(catGS['전필']||0)+(catGS['전선']||0);
+  const majGC=(catGC['전필']||0)+(catGC['전선']||0);
+  const catDefs=[
+    {key:'전공',label:'전공 전체',gs:majGS,gc:majGC,color:'var(--accent)'},
+    {key:'전필',label:'전공필수',gs:catGS['전필']||0,gc:catGC['전필']||0,color:'var(--accent)'},
+    {key:'전선',label:'전공선택',gs:catGS['전선']||0,gc:catGC['전선']||0,color:'var(--purple)'},
+    {key:'교필',label:'공통교필',gs:catGS['교필']||0,gc:catGC['교필']||0,color:'var(--yellow)'},
+    {key:'학기초',label:'학문기초교필',gs:catGS['학기초']||0,gc:catGC['학기초']||0,color:'var(--orange)'},
+    {key:'교선',label:'균형교필',gs:catGS['교선']||0,gc:catGC['교선']||0,color:'var(--green)'},
+  ];
+  document.getElementById('catGPA').innerHTML=catDefs.map(d=>{
+    const gpa=d.gc>0?(d.gs/d.gc).toFixed(2):'—';
+    return`<div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 12px">
+      <div style="font-size:10px;color:var(--muted);font-weight:600;margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px">${d.label}</div>
+      <div style="font-size:20px;font-weight:800;letter-spacing:-1px;color:${d.gc>0?d.color:'var(--border2)'};">${gpa}</div>
+      <div style="font-size:10px;color:var(--muted);margin-top:2px">${d.gc>0?`${d.gc}학점 기준`:'이수 없음'}</div>
+    </div>`;
+  }).join('');
+
+  const defs=[
+    {l:'전공필수',  e:cat['전필']||0,  p:catPlan['전필']||0,  n:req.전필,   ci:'c0'},
+    {l:'전공선택',  e:cat['전선']||0,  p:catPlan['전선']||0,  n:req.전선,   ci:'c1'},
+    {l:'공통교양필수',e:cat['교필']||0,p:catPlan['교필']||0,  n:req.공통,   ci:'c2'},
+    {l:'균형교양필수',e:cat['교선']||0,p:catPlan['교선']||0,  n:req.균형,   ci:'c1'},
+    {l:'학문기초교양필수',e:cat['학기초']||0,p:catPlan['학기초']||0,n:req.학기초,ci:'c3'},
+    {l:'총 취득 학점',e:earn,          p:planEarn,             n:req.total,  ci:'c4'},
+  ];
+  document.getElementById('ccards').innerHTML=defs.map(d=>{
+    const pct    = d.n>0?Math.min(100,d.e/d.n*100):0;
+    const pctPlan= d.n>0?Math.min(100,(d.e+d.p)/d.n*100):0;
+    const ok     = d.e>=d.n;
+    const hasplan= d.p>0 && !ok;
+    // 숫자 표시: 취득(+예정) / 필요
+    const numHtml= hasplan
+      ? `<span class="cc-e">${d.e}</span><span style="font-size:13px;font-weight:700;color:var(--purple);opacity:.6">&thinsp;(+${d.p}예정)</span><span class="cc-sep">/</span><span class="cc-need">${d.n}</span>`
+      : `<span class="cc-e">${d.e}</span><span class="cc-sep">/</span><span class="cc-need">${d.n}</span>`;
+    return`<div class="ccard${ok?' done':''}">
+      <div class="cc-lbl">${d.l}</div>
+      <div class="cc-n">${numHtml}</div>
+      <div class="cc-bar" style="position:relative">
+        ${hasplan?`<div class="cc-fill ${d.ci}" style="width:${pctPlan}%;opacity:.25;position:absolute;top:0;left:0;height:100%"></div>`:''}
+        <div class="cc-fill ${d.ci}${ok?' complete':''}" style="width:${pct}%;position:relative"></div>
+      </div>
+      <div class="cc-st">${ok
+        ? (d.e>d.n?`+${d.e-d.n}학점 초과 ✓`:'이수 완료 ✓')
+        : hasplan
+          ? `${d.n-d.e}학점 남음 (예정 포함 시 ${Math.max(0,d.n-d.e-d.p)}학점)`
+          : `${d.n-d.e}학점 남음`
+      }</div>
+    </div>`;
+  }).join('');
+  updSemTabCounts();
+}
+
+// ── CATEGORY LABELS ──
+const CAT_LABEL={
+  '전필':'전공필수','전선':'전공선택',
+  '교필':'공통교필','교선':'균형교필',
+  '학기초':'학문기초교필','기타':'교양선택'
+};
+function catLabel(cat){ return CAT_LABEL[cat]||cat; }
+
+// ── PREREQ ──
+// Returns array of {name, ok, isReq} for each prereq entry
+function prereqList(c){
+  const dset=new Set(C.filter(x=>x.status==='수강완료').map(x=>x.name));
+  const items=[];
+  if(c.prereq){
+    c.prereq.split(/[,，、]/).map(s=>s.trim()).filter(Boolean)
+      .forEach(n=>items.push({name:n,ok:dset.has(n),isReq:true}));
+  }
+  if(c.prereqRec){
+    c.prereqRec.split(/[,，、]/).map(s=>s.trim()).filter(Boolean)
+      .forEach(n=>items.push({name:n,ok:dset.has(n),isReq:false}));
+  }
+  return items;
+}
+
+// ── RENDER TABLE ──
+function setF(f,el){
+  filt=f;
+  document.getElementById('catTabs').querySelectorAll('.ftab').forEach(t=>t.classList.remove('on'));
+  el.classList.add('on');
+  render();
+}
+function setStatusF(s,el){
+  statusFilt=s;
+  document.getElementById('statusTabs').querySelectorAll('.ftab').forEach(t=>t.classList.remove('on'));
+  el.classList.add('on');
+  render();
+}
+function setSemF(s,el){
+  semFilt=s;
+  document.getElementById('semTabs').querySelectorAll('.ftab').forEach(t=>t.classList.remove('on'));
+  el.classList.add('on');
+  updSemTabCounts();
+  render();
+}
+
+// update badge counts on semester tabs
+function updSemTabCounts(){
+  const semKeys=['전체','1-1','1-2','2-1','2-2','3-1','3-2','4-1','4-2','계절','미지정'];
+  const tabs=document.getElementById('semTabs').querySelectorAll('.ftab');
+  tabs.forEach((btn,i)=>{
+    const s=semKeys[i];
+    let cnt;
+    if(s==='전체') cnt=C.length;
+    else if(s==='계절') cnt=C.filter(c=>semOf(c).includes('계절')).length;
+    else if(s==='미지정') cnt=C.filter(c=>!semOf(c)).length;
+    else cnt=C.filter(c=>semOf(c)===s).length;
+    const base=btn.textContent.replace(/\s*\(\d+\)$/,'').trim();
+    btn.textContent=cnt>0?`${base} (${cnt})`:base;
+  });
+}
+function sortBy(col){sCol===col?(sAsc=!sAsc):(sCol=col,sAsc=true);render();}
+
+function semOf(c){ return c.takeSem||c.planSem||''; }
+
+function render(){
+  const q=document.getElementById('searchBox').value.toLowerCase();
+  let rows=C.filter(c=>{
+    const ms=c.name.toLowerCase().includes(q)||(c.prereq||'').toLowerCase().includes(q)||(c.prereqRec||'').toLowerCase().includes(q);
+
+    // 분류 필터
+    let mf=true;
+    if(filt==='전필')mf=c.category==='전필';
+    else if(filt==='전선')mf=c.category==='전선';
+    else if(filt==='교필')mf=c.category==='교필';
+    else if(filt==='학기초')mf=c.category==='학기초';
+    else if(filt==='교선')mf=c.category==='교선';
+    else if(filt==='기타')mf=c.category==='기타';
+
+    // 수강 상태 필터
+    let statf=true;
+    if(statusFilt==='수강완료')statf=c.status==='수강완료';
+    else if(statusFilt==='수강중')statf=c.status==='수강중';
+    else if(statusFilt==='수강예정')statf=c.status==='수강예정';
+    else if(statusFilt==='미수강')statf=c.status==='미수강';
+    else if(statusFilt==='재수강')statf=c.retake;
+
+    // 학기 필터
+    let sf=true;
+    if(semFilt!=='전체'){
+      const sem=semOf(c);
+      if(semFilt==='계절') sf=sem.includes('계절');
+      else if(semFilt==='미지정') sf=!sem;
+      else sf=sem===semFilt;
+    }
+    return ms&&mf&&statf&&sf;
+  });
+  if(sCol)rows.sort((a,b)=>{let va=a[sCol],vb=b[sCol];if(sCol==='credits'){va=+va;vb=+vb;}return sAsc?(va<vb?-1:va>vb?1:0):(va>vb?-1:va<vb?1:0);});
+
+  // ── 학기 요약 ──
+  const sumEl=document.getElementById('semSummary');
+  if(semFilt!=='전체'){
+    // 현재 필터된 rows 중 수강완료이고 재수강=false인 것만 계산
+    const doneRows=rows.filter(r=>r.status==='수강완료'&&!r.retake);
+    let semEarn=0,semGS=0,semGC=0,semCnt=rows.length,semDoneCnt=doneRows.length;
+    for(const r of doneRows){
+      const gp=GMAP[r.grade];
+      if(r.grade!=='F'&&r.grade!=='NP') semEarn+=r.credits;
+      if(gp!=null){semGS+=gp*r.credits;semGC+=r.credits;}
+    }
+    const semGPA=semGC>0?(semGS/semGC).toFixed(2):'—';
+    const semLabel=semFilt==='계절'?'계절학기':semFilt==='미지정'?'미지정':`${semFilt}학기`;
+    document.getElementById('semSummaryTitle').textContent=`${semLabel} 현황`;
+    document.getElementById('semSummaryCards').innerHTML=`
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:10px 14px">
+        <div style="font-size:10px;color:var(--muted);font-weight:600;margin-bottom:4px">과목 수</div>
+        <div style="font-size:22px;font-weight:800;color:var(--text)">${semCnt}</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px">완료 ${semDoneCnt}개</div>
+      </div>
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:10px 14px">
+        <div style="font-size:10px;color:var(--muted);font-weight:600;margin-bottom:4px">이수 학점</div>
+        <div style="font-size:22px;font-weight:800;color:var(--green)">${semEarn}</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px">수강완료 기준</div>
+      </div>
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:10px 14px">
+        <div style="font-size:10px;color:var(--muted);font-weight:600;margin-bottom:4px">평균 학점</div>
+        <div style="font-size:22px;font-weight:800;color:var(--accent)">${semGPA}</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px">4.5 만점</div>
+      </div>
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:10px 14px">
+        <div style="font-size:10px;color:var(--muted);font-weight:600;margin-bottom:4px">등록 학점</div>
+        <div style="font-size:22px;font-weight:800;color:var(--text2)">${rows.reduce((s,r)=>s+r.credits,0)}</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px">전체 과목 합계</div>
+      </div>`;
+    sumEl.style.display='block';
+  } else {
+    sumEl.style.display='none';
+  }
+
+  const tbody=document.getElementById('tBody');
+  if(!rows.length){tbody.innerHTML='';document.getElementById('empty').style.display='block';return;}
+  document.getElementById('empty').style.display='none';
+
+  tbody.innerHTML=rows.map(c=>{
+    const isDone=c.status==='수강완료', isDoing=c.status==='수강중', isPlan=c.status==='수강예정';
+    const isRetakePlan=!!c.retakePlan;
+    let rowCls=isDone?'doner':isDoing?'doing':isPlan?'planning':'';
+    if(isRetakePlan) rowCls+=' retake-plan-row';
+
+    // 재수강 체크된 과목 = 구 수강본, 계산 제외 표시
+    const isExcluded=!!c.retake;
+
+    // grade cell
+    const gc=gClass(c.grade);
+    let gradeCell;
+    if(isDone){
+      // 재수강 완료본(retake=false)이고 prevGrade 있으면 전 성적 표시
+      const showPrev = !c.retake && c.prevGrade && c.prevGrade!=='-';
+      gradeCell=`<div class="gcell">
+        <span class="gchip ${gc}" onclick="openGradePop('${c.id}',this)" title="클릭해서 성적 변경">${c.grade}</span>
+        ${showPrev?`<span class="prev-g" style="cursor:default" title="재수강 전 성적">전:${c.prevGrade}</span>`:''}
+      </div>`;
+    } else {
+      gradeCell=`<span class="gchip gc- disabled" title="수강완료 후 성적 입력 가능">—</span>`;
+    }
+
+    // status buttons
+    const statusCell=`<div class="status-cell">
+      <button class="sbtn${isDone?' s-done':''}" onclick="setStatus('${c.id}','수강완료')">${isDone?'✓ 수강완료':'수강완료'}</button>
+      <button class="sbtn${isDoing?' s-doing':''}" onclick="setStatus('${c.id}','수강중')">${isDoing?'✓ 수강중':'수강중'}</button>
+      <button class="sbtn${isPlan?' s-plan':''}" onclick="setStatus('${c.id}','수강예정')">${isPlan?'✓ 수강예정':'수강예정'}</button>
+    </div>`;
+
+    // 이수학기: 완료·수강중만 / 예정학기: 수강예정만
+    const canTakeSem = isDone || isDoing;
+    const tsDisp=c.takeSem||'학기 선택';
+    const tsFill=!!c.takeSem;
+
+    let semCell;
+    if(canTakeSem){
+      semCell=`<button class="tsem-btn${tsFill?' filled':''}" onclick="openSemPop('${c.id}','take',this)" title="이수학기 설정"><span class="ti">${tsFill?'📅':'＋'}</span>${tsDisp}</button>`;
+    } else if(isPlan){
+      const psDisp=c.planSem||'예정학기 선택';
+      const psFill=!!c.planSem;
+      semCell=`<button class="tsem-btn${psFill?' filled':''}" style="border-color:${psFill?'#c4b5fd':'var(--border2)'};background:${psFill?'#f5f3ff':'var(--surface2)'};color:${psFill?'var(--purple)':'var(--muted)'}" onclick="openSemPop('${c.id}','plan',this)" title="수강 예정 학기 설정"><span class="ti">${psFill?'🗓️':'＋'}</span>${psDisp}</button>`;
+    } else {
+      semCell=`<span style="font-size:11px;color:var(--border2);user-select:none">—</span>`;
+    }
+
+    // prereq — required (bold/blue) vs recommended (italic/gray), both go green when done
+    const plist=prereqList(c);
+    let prereqCell='<span style="color:var(--muted);font-size:11px">—</span>';
+    if(plist.length){
+      prereqCell=`<div class="prereq-wrap">${plist.map(p=>{
+        const nm=p.name.length>9?p.name.slice(0,9)+'…':p.name;
+        const baseCls=p.isReq?'prereq-pill pr-req':'prereq-pill pr-rec';
+        const okCls=p.ok?' pr-ok':'';
+        const dotCls=p.ok?'ok':p.isReq?'req':'rec';
+        return`<span class="${baseCls}${okCls}" title="${p.name}${p.isReq?' (필수선수)':' (권장선수)'}"><span class="pr-dot ${dotCls}"></span><span class="pr-name">${nm}</span>${p.ok?'✓':''}</span>`;
+      }).join('')}</div>`;
+    }
+
+    // retake cell: 체크박스 + 재수강예정 버튼만 (전 성적 표시 없음)
+    const retakeCell=`<div class="retake-cell">
+      <div class="cb${c.retake?' on':''}" onclick="toggleRetake('${c.id}')" title="${c.retake?'재수강 해제':'재수강 표시'}"></div>
+      ${c.retake?`<span style="font-size:11px;color:var(--orange);font-weight:600">재수강</span>`:''}
+      <button class="retake-plan-btn${c.retakePlan?' on':''}" onclick="toggleRetakePlan('${c.id}')">${c.retakePlan?'재수강예정 ✓':'재수강예정'}</button>
+    </div>`;
+
+    // category cell: 클릭하면 인라인 select로 변경 가능
+    const catCell=`<select class="cat-select badge badge-${c.category}" onchange="setCategory('${c.id}',this.value)" title="클릭해서 분류 변경">
+      <option value="전필"${c.category==='전필'?' selected':''}>전공필수</option>
+      <option value="전선"${c.category==='전선'?' selected':''}>전공선택</option>
+      <option value="교필"${c.category==='교필'?' selected':''}>공통교필</option>
+      <option value="학기초"${c.category==='학기초'?' selected':''}>학문기초교필</option>
+      <option value="교선"${c.category==='교선'?' selected':''}>균형교필</option>
+      <option value="기타"${c.category==='기타'?' selected':''}>교양선택</option>
+    </select>`;
+
+    return`<tr class="${rowCls}">
+      <td style="font-weight:600;min-width:120px;${isExcluded?'text-decoration:line-through;color:var(--muted)':''}">${c.name}${isExcluded?'<span style="font-size:9px;background:#fee2e2;color:var(--red);border-radius:4px;padding:1px 4px;margin-left:4px;font-weight:600;vertical-align:middle">계산제외</span>':''}</td>
+      <td style="font-weight:700;text-align:center;${isExcluded?'color:var(--muted);text-decoration:line-through':''}">${c.credits}</td>
+      <td style="color:var(--muted);text-align:center;font-size:12px">${c.semester||'—'}</td>
+      <td style="text-align:center">${semCell}</td>
+      <td style="text-align:center">${catCell}</td>
+      <td>${gradeCell}</td>
+      <td>${statusCell}</td>
+      <td>${prereqCell}</td>
+      <td>${retakeCell}</td>
+      <td><button class="del-btn" onclick="delC('${c.id}')" title="삭제">🗑️</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function setCategory(id,cat){
+  const c=C.find(x=>x.id===id);if(!c)return;
+  c.category=cat;sv();updStats();render();
+}
+
+// ── STATUS ──
+function setStatus(id,status){
+  const c=C.find(x=>x.id===id);if(!c)return;
+  // 이미 같은 상태면 미수강으로 토글
+  if(c.status===status) status='미수강';
+  c.status=status;
+  if(status==='수강완료'){
+    if(!c.takeSem && c.semester) c.takeSem=c.semester;
+    c.planSem='';
+  }
+  if(status==='수강중') c.planSem='';
+  if(status==='수강예정'){ c.grade='-'; c.takeSem=''; }
+  if(status==='미수강'){ c.grade='-'; c.takeSem=''; c.planSem=''; }
+  sv();updStats();render();
+}
+
+// ── RETAKE ──
+// 재수강 체크 → 학기 선택 팝업 → 새 과목(재수강본) 추가
+let retakePickId=null;
+
+function toggleRetake(id){
+  const c=C.find(x=>x.id===id);if(!c)return;
+  if(c.retake){
+    c.retake=false;c.prevGrade='-';
+    sv();updStats();render();
+  } else {
+    // 체크: 이전 성적 저장 후 재수강 학기 선택
+    c.retake=true;
+    c.prevGrade=c.grade||'-';
+    sv();updStats();render();
+    // 재수강 수강 학기 선택 팝업 열기
+    openRetakeSemPop(id);
+  }
+}
+
+function openRetakeSemPop(id){
+  retakePickId=id;
+  const c=C.find(x=>x.id===id);
+  const pop=document.getElementById('retakeSemPopup');
+  pop.innerHTML=`
+    <div style="font-size:12px;font-weight:700;color:var(--orange);margin-bottom:8px">↩ '${c.name}' 재수강 학기 선택</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:8px">재수강한 학기를 선택하면 같은 과목이 재수강본으로 자동 추가됩니다.</div>
+    <div class="sem-grid" style="margin-bottom:6px">${SEMS.map(s=>`<button class="sp-btn" onclick="addRetakeCourse('${id}','${s}')">${s}</button>`).join('')}</div>
+    <div class="sea-row" style="margin-bottom:8px">
+      <span>계절:</span>
+      <input class="sea-yr" id="rtSeaYr" type="number" placeholder="${new Date().getFullYear()}" min="2019" max="2030">
+      <button class="sea-btn" onclick="addRetakeSeasonal('${id}','summer')">여름</button>
+      <button class="sea-btn" onclick="addRetakeSeasonal('${id}','winter')">겨울</button>
+    </div>
+    <button class="sem-clear" onclick="skipRetakeSem()" style="color:var(--muted)">나중에 직접 설정</button>`;
+  pop.style.display='block';
+  // 화면 중앙에 표시
+  pop.style.top='50%';pop.style.left='50%';
+  pop.style.transform='translate(-50%,-50%)';
+  pop.style.position='fixed';
+  // 배경 오버레이
+  document.getElementById('retakeSemBg').style.display='block';
+}
+
+function addRetakeCourse(origId, takeSem){
+  const orig=C.find(x=>x.id===origId);if(!orig)return;
+  const newC={
+    ...orig,
+    id:Date.now().toString(),
+    retake:false,
+    retakePlan:false,
+    prevGrade:orig.grade,   // 이전 성적 = 원본 성적
+    grade:'-',
+    status:'수강완료',
+    takeSem:takeSem,
+    planSem:'',
+  };
+  C.push(newC);
+  sv();updStats();render();
+  closeRetakeSemPop();
+}
+
+function addRetakeSeasonal(origId, type){
+  const yr=document.getElementById('rtSeaYr').value||new Date().getFullYear();
+  addRetakeCourse(origId,`${yr}년도 ${type==='summer'?'여름':'겨울'} 계절학기`);
+}
+
+function skipRetakeSem(){
+  // 학기 없이 재수강본 추가
+  const orig=C.find(x=>x.id===retakePickId);if(!orig)return;
+  const newC={
+    ...orig,
+    id:Date.now().toString(),
+    retake:false,retakePlan:false,
+    prevGrade:orig.grade,
+    grade:'-',
+    status:'수강완료',
+    takeSem:'',planSem:'',
+  };
+  C.push(newC);
+  sv();updStats();render();
+  closeRetakeSemPop();
+}
+
+function closeRetakeSemPop(){
+  document.getElementById('retakeSemPopup').style.display='none';
+  document.getElementById('retakeSemBg').style.display='none';
+  retakePickId=null;
+}
+
+function toggleRetakePlan(id){
+  const c=C.find(x=>x.id===id);if(!c)return;
+  if(c.retakePlan){
+    // 해제 → 미수강으로
+    c.retakePlan=false;
+    c.status='미수강';
+    c.planSem='';
+    sv();updStats();render();
+  } else {
+    // 활성화 → 먼저 상태/planSem 세팅 후 학기 선택 팝업
+    c.retakePlan=true;
+    c.status='수강예정';
+    sv();updStats();render();
+    openRetakePlanSemPop(id);
+  }
+}
+
+function openRetakePlanSemPop(id){
+  retakePickId=id;
+  const c=C.find(x=>x.id===id);
+  const pop=document.getElementById('retakeSemPopup');
+  pop.innerHTML=`
+    <div style="font-size:12px;font-weight:700;color:var(--purple);margin-bottom:8px">🗓️ '${c.name}' 재수강 예정 학기</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:8px">수강 예정 학기를 선택하면 예정학기에 표시됩니다.</div>
+    <div class="sem-grid" style="margin-bottom:6px">${SEMS.map(s=>`<button class="sp-btn" onclick="setRetakePlanSem('${id}','${s}')">${s}</button>`).join('')}</div>
+    <div class="sea-row" style="margin-bottom:8px">
+      <span>계절:</span>
+      <input class="sea-yr" id="rtpSeaYr" type="number" placeholder="${new Date().getFullYear()}" min="2019" max="2030">
+      <button class="sea-btn" onclick="setRetakePlanSeasonal('${id}','summer')">여름</button>
+      <button class="sea-btn" onclick="setRetakePlanSeasonal('${id}','winter')">겨울</button>
+    </div>
+    <button class="sem-clear" onclick="closeRetakeSemPop()" style="color:var(--muted)">나중에 직접 설정</button>`;
+  pop.style.display='block';
+  pop.style.top='50%';pop.style.left='50%';
+  pop.style.transform='translate(-50%,-50%)';
+  pop.style.position='fixed';
+  document.getElementById('retakeSemBg').style.display='block';
+}
+
+function setRetakePlanSem(id, sem){
+  const c=C.find(x=>x.id===id);if(!c)return;
+  c.planSem=sem;
+  sv();render();
+  closeRetakeSemPop();
+}
+
+function setRetakePlanSeasonal(id, type){
+  const yr=document.getElementById('rtpSeaYr').value||new Date().getFullYear();
+  setRetakePlanSem(id,`${yr}년도 ${type==='summer'?'여름':'겨울'} 계절학기`);
+}
+
+// ── GRADE POPUP ──
+function openGradePop(id,anchor){
+  popGId=id;
+  const c=C.find(x=>x.id===id);
+  const pop=document.getElementById('gradePopup');
+  pop.innerHTML=GRADES.map(g=>`<span class="gchip ${gClass(g)}${c.grade===g?' cur':''}" onclick="setGrade('${id}','${g}')">${g}</span>`).join('');
+  const r=anchor.getBoundingClientRect();
+  pop.style.top=(r.bottom+window.scrollY+4)+'px';
+  pop.style.left=Math.min(r.left+window.scrollX,window.innerWidth-210)+'px';
+  pop.style.display='flex';
+}
+function setGrade(id,g){
+  const c=C.find(x=>x.id===id);if(!c)return;
+  c.grade=g;sv();updStats();render();
+  document.getElementById('gradePopup').style.display='none';
+}
+
+// ── SEM POPUP ──
+function openSemPop(id,field,anchor){
+  popSId=id;popSField=field;
+  const c=C.find(x=>x.id===id);
+  const cur=field==='take'?c.takeSem:field==='plan'?c.planSem:c.semester;
+  const isSea=cur&&!SEMS.includes(cur);
+  let seaType='',seaYr=new Date().getFullYear();
+  if(isSea){const m=cur.match(/(\d+)년도 (여름|겨울)/);if(m){seaYr=m[1];seaType=m[2]==='여름'?'summer':'winter';}}
+  const title=field==='take'?'이수학기 설정':field==='plan'?'수강예정 학기 설정':'권장학기 설정';
+  const pop=document.getElementById('semPopup');
+  pop.innerHTML=`<div class="sem-popup-title">${title}</div>
+    <div class="sem-grid">${SEMS.map(s=>`<button class="sp-btn${cur===s?' on':''}" onclick="setSem('${s}')">${s}</button>`).join('')}</div>
+    ${field!=='rec'?`<div class="sea-row">
+      <span>계절:</span>
+      <input class="sea-yr" id="spSeaYr" type="number" value="${seaYr}" min="2019" max="2030" oninput="spSeaYrChange()">
+      <button class="sea-btn${seaType==='summer'?' on':''}" id="spSumBtn" onclick="toggleSpSea('summer')">여름</button>
+      <button class="sea-btn${seaType==='winter'?' on':''}" id="spWinBtn" onclick="toggleSpSea('winter')">겨울</button>
+    </div>`:''}
+    <button class="sem-clear" onclick="setSem('')">선택 해제</button>`;
+  const r=anchor.getBoundingClientRect();
+  pop.style.top=(r.bottom+window.scrollY+4)+'px';
+  pop.style.left=Math.min(r.left+window.scrollX,window.innerWidth-260)+'px';
+  pop.style.display='block';
+}
+function setSem(v){
+  const c=C.find(x=>x.id===popSId);if(!c)return;
+  if(popSField==='take') c.takeSem=v;
+  else if(popSField==='plan') c.planSem=v;
+  else c.semester=v;
+  sv();render();document.getElementById('semPopup').style.display='none';
+}
+function spSeaYrChange(){
+  const yr=document.getElementById('spSeaYr').value;
+  const sumOn=document.getElementById('spSumBtn').classList.contains('on');
+  const winOn=document.getElementById('spWinBtn').classList.contains('on');
+  const c=C.find(x=>x.id===popSId);if(!c)return;
+  const val=type=>type==='summer'?`${yr}년도 여름 계절학기`:`${yr}년도 겨울 계절학기`;
+  if(sumOn){if(popSField==='take')c.takeSem=val('summer');else c.planSem=val('summer');sv();render();}
+  if(winOn){if(popSField==='take')c.takeSem=val('winter');else c.planSem=val('winter');sv();render();}
+}
+function toggleSpSea(type){
+  const yr=document.getElementById('spSeaYr').value||new Date().getFullYear();
+  const c=C.find(x=>x.id===popSId);if(!c)return;
+  const cur=popSField==='take'?c.takeSem:c.planSem;
+  const curType=cur?.includes('여름')?'summer':cur?.includes('겨울')?'winter':'';
+  const newVal=`${yr}년도 ${type==='summer'?'여름':'겨울'} 계절학기`;
+  if(curType===type){
+    if(popSField==='take')c.takeSem='';else c.planSem='';
+  } else {
+    if(popSField==='take')c.takeSem=newVal;else c.planSem=newVal;
+  }
+  sv();render();document.getElementById('semPopup').style.display='none';
+}
+
+// ── PREV GRADE POPUP ──
+function openPrevG(id){
+  prevGId=id;
+  const c=C.find(x=>x.id===id);
+  prevGVal=c?.prevGrade||'-';
+  const pick=document.getElementById('prevGPick');
+  pick.innerHTML=GRADES.map(g=>`<span class="gchip ${gClass(g)}${prevGVal===g?' cur':''}" onclick="setPrevGVal('${g}')">${g}</span>`).join('');
+  document.getElementById('prevGOv').classList.add('open');
+}
+function setPrevGVal(g){
+  prevGVal=g;
+  document.querySelectorAll('#prevGPick .gchip').forEach(el=>{el.classList.remove('cur');if(el.textContent===g)el.classList.add('cur');});
+}
+function savePrevG(){
+  const c=C.find(x=>x.id===prevGId);if(c){c.prevGrade=prevGVal;sv();render();}
+  document.getElementById('prevGOv').classList.remove('open');
+}
+function closePrevG(e){if(e.target===document.getElementById('prevGOv'))closePrevGDirect();}
+function closePrevGDirect(){document.getElementById('prevGOv').classList.remove('open');}
+
+// ── ADD MODAL ──
+let aRecSem_='', aTakeSem_='', aSeaType_='';
+function openAdd(){
+  aRecSem_='';aTakeSem_='';aSeaType_='';
+  document.getElementById('aN').value='';document.getElementById('aC').value=3;
+  document.getElementById('aD').value=0;document.getElementById('aCat').value='전필';
+  document.getElementById('aPre').value='';document.getElementById('aPreRec').value='';
+  document.getElementById('aSeaYrInp').value='';
+  document.getElementById('aSeaSumBtn').classList.remove('on');
+  document.getElementById('aSeaWinBtn').classList.remove('on');
+  buildSP('aRecSP','',v=>{aRecSem_=v;buildSP('aRecSP',v,arguments.callee);});
+  buildSP('aTakeSP','',v=>{
+    aTakeSem_=v;aSeaType_='';
+    buildSP('aTakeSP',v,arguments.callee);
+    document.getElementById('aSeaSumBtn').classList.remove('on');
+    document.getElementById('aSeaWinBtn').classList.remove('on');
+  });
+  document.getElementById('addOv').classList.add('open');
+  setTimeout(()=>document.getElementById('aN').focus(),80);
+}
+function aSeaYrChange(){
+  const y=document.getElementById('aSeaYrInp').value;
+  if(!aSeaType_)return;
+  aTakeSem_=`${y}년도 ${aSeaType_==='summer'?'여름':'겨울'} 계절학기`;
+}
+function toggleASea(type){
+  const y=document.getElementById('aSeaYrInp').value||new Date().getFullYear();
+  if(aSeaType_===type){
+    aSeaType_='';aTakeSem_='';
+  } else {
+    aSeaType_=type;
+    aTakeSem_=`${y}년도 ${type==='summer'?'여름':'겨울'} 계절학기`;
+    buildSP('aTakeSP','',v=>{aTakeSem_=v;aSeaType_='';buildSP('aTakeSP',v,arguments.callee);document.getElementById('aSeaSumBtn').classList.remove('on');document.getElementById('aSeaWinBtn').classList.remove('on');});
+  }
+  document.getElementById('aSeaSumBtn').classList.toggle('on',aSeaType_==='summer');
+  document.getElementById('aSeaWinBtn').classList.toggle('on',aSeaType_==='winter');
+}
+function buildSP(id,cur,cb){
+  const el=document.getElementById(id);if(!el)return;
+  el.innerHTML=SEMS.map(s=>`<button class="spb${cur===s?' on':''}" onclick="(${cb})('${s}')">${s}</button>`).join('');
+}
+function closeAdd(e){if(e.target===document.getElementById('addOv'))closeAddDirect();}
+function closeAddDirect(){document.getElementById('addOv').classList.remove('open');}
+function saveAdd(){
+  const n=document.getElementById('aN').value.trim();if(!n){alert('강의명을 입력해주세요.');return;}
+  const recSem=aRecSem_;
+  const takeSem=aTakeSem_||(recSem||''); // 미선택 시 권장학기로 자동
+  const c={
+    id:Date.now().toString(),name:n,
+    credits:parseInt(document.getElementById('aC').value)||3,
+    dc:parseInt(document.getElementById('aD').value)||0,
+    category:document.getElementById('aCat').value,
+    prereq:document.getElementById('aPre').value.trim(),
+    prereqRec:document.getElementById('aPreRec').value.trim(),
+    semester:recSem,takeSem:takeSem,planSem:'',
+    grade:'-',prevGrade:'-',
+    status:'수강완료',   // 기본값: 수강완료
+    retake:false,retakePlan:false,
+  };
+  C.push(c);sv();updStats();render();closeAddDirect();
+}
+
+// ── DELETE / BULK ──
+function delC(id){C=C.filter(c=>c.id!==id);sv();updStats();render();}
+function toggleAll(cb){document.querySelectorAll('.rchk').forEach(c=>c.checked=cb.checked);}
+function clearAll(){C=[];sv();updStats();render();}
+
+// ── IMPORT / EXPORT ──
+function exportData(){
+  const b=new Blob([JSON.stringify({courses:C,yr,uname,at:new Date().toISOString()},null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=`학점계산기_${uname}_${yr}학번.json`;a.click();
+}
+function loadFile(e){
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=ev=>{try{const d=JSON.parse(ev.target.result);if(d.courses)C=d.courses;if(d.yr){yr=d.yr;const _ay=document.getElementById('admYear');if(_ay)_ay.value=yr;}if(d.uname)uname=d.uname;sv();updH();updStats();render();alert('✅ 불러오기 완료');}catch{alert('❌ 파일 형식 오류');}};
+  r.readAsText(f);e.target.value='';
+}
+
+// ── CLOSE POPUPS ON OUTSIDE CLICK ──
+document.addEventListener('click',e=>{
+  const gp=document.getElementById('gradePopup');
+  const sp=document.getElementById('semPopup');
+  if(gp.style.display==='flex'&&!gp.contains(e.target)&&!e.target.closest('.gchip'))gp.style.display='none';
+  if(sp.style.display==='block'&&!sp.contains(e.target)&&!e.target.closest('[onclick*="openSemPop"]'))sp.style.display='none';
+},{capture:true});
+
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){document.getElementById('gradePopup').style.display='none';document.getElementById('semPopup').style.display='none';closeAddDirect();}});
+
+// ── INIT ──
+ld();
+if(!uname)openOnboard(false);
+else{updH();updStats();render();}
+</script>
+</body>
+</html>
