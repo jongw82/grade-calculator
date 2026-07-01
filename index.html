@@ -432,7 +432,7 @@ input[type=checkbox]{width:14px;height:14px;accent-color:var(--accent);cursor:po
       <th onclick="sortBy('semester')">권장학기</th>
       <th>이수/예정학기</th>
       <th onclick="sortBy('category')">분류</th>
-      <th>성적</th>
+      <th onclick="sortBy('grade')">성적</th>
       <th>수강 상태</th>
       <th>선수강 <span style="font-size:9px;font-weight:400;color:var(--muted);font-style:normal;letter-spacing:0">(<span style="color:#1d4ed8;font-weight:700">굵</span>=필수 <span style="font-style:italic;color:var(--gray)">기</span>=권장)</span></th>
       <th>재수강</th>
@@ -547,6 +547,8 @@ const GRAD={
 };
 const GMAP={'A+':4.5,'A0':4.0,'B+':3.5,'B0':3.0,'C+':2.5,'C0':2.0,'D+':1.5,'D0':1.0,'F':0,'P':null,'NP':null,'-':null};
 const GRADES=['-','A+','A0','B+','B0','C+','C0','D+','D0','F','P','NP'];
+// 성적 정렬용 순서 (낮음→높음): F가 가장 낮고 A+가 가장 높음. P/NP/미입력은 맨 뒤로.
+const GRADE_ORDER={'F':0,'D0':1,'D+':2,'C0':3,'C+':4,'B0':5,'B+':6,'A0':7,'A+':8,'P':9,'NP':10,'-':11};
 const SEMS=['1-1','1-2','2-1','2-2','3-1','3-2','4-1','4-2'];
 
 // gKey: grade → css class suffix (. and + → safe chars)
@@ -927,7 +929,7 @@ async function sv(){
 function migrateCourses(){
   C = C.map(c => ({
     grade:'-', prevGrade:'-', expGrade:'-',
-    status:'미수강', retake:false, retakePlan:false,
+    status:'미수강', retake:false, retakePlan:false, retakePlanOf:null,
     takeSem:'', planSem:'', dc:0, prereq:'', prereqRec:'',
     ...c
   }));
@@ -951,7 +953,7 @@ function ldLocal(){
   migrateCourses();
 }
 
-function mkC(p,i){return{id:(Date.now()+i).toString(),grade:'-',prevGrade:'-',expGrade:'-',status:'미수강',retake:false,retakePlan:false,takeSem:'',planSem:'',dc:p.dc||0,prereqRec:p.prereqRec||'',...p};}
+function mkC(p,i){return{id:(Date.now()+i).toString(),grade:'-',prevGrade:'-',expGrade:'-',status:'미수강',retake:false,retakePlan:false,retakePlanOf:null,takeSem:'',planSem:'',dc:p.dc||0,prereqRec:p.prereqRec||'',...p};}
 
 function toggleProjected(){
   showProjected=!showProjected;
@@ -1083,19 +1085,43 @@ function updStats(){
     }
   }
 
-  // 수강예정+수강중 학점 집계 (실제 취득 예정 학점 — 항상 계산)
+  // 수강예정+수강중 학점 집계 (실제 취득 예정 학점 — 재수강예정 사본은 원본과 중복이라 제외)
   let planEarn=0;
   for(const c of projList){
-    if(!c.retake){
-      planEarn+=c.credits;
-      catPlan[c.category]=(catPlan[c.category]||0)+c.credits;
-    }
+    if(c.retake) continue;
+    if(c.retakePlanOf) continue; // 원본과 중복 계산 방지
+    planEarn+=c.credits;
+    catPlan[c.category]=(catPlan[c.category]||0)+c.credits;
   }
 
   // 예상성적(expGrade) 반영 계산 — 수강예정/수강중 과목 중 예상성적을 입력한 것만 GPA에 가중 반영
   let projGS=gs, projGC=gc, projEarn=earn, projCount=0;
+
+  // ① 재수강예정 스왑: 원본의 실제 성적 → 사본의 예상성적으로 대체
+  const retakePlanCopyOf={}; // originalId -> copy
+  for(const c of C){ if(c.retakePlanOf) retakePlanCopyOf[c.retakePlanOf]=c; }
+  for(const orig of done){
+    if(orig.retake) continue;
+    const copy=retakePlanCopyOf[orig.id];
+    if(!copy) continue;
+    const eg=copy.expGrade||'-';
+    const egp=GMAP[eg];
+    if(egp==null) continue; // 예상성적 미입력이면 원본 그대로 유지
+    // 원본 기여분 제거
+    const origGp=GMAP[orig.grade];
+    if(orig.grade!=='F'&&orig.grade!=='NP') projEarn -= orig.credits;
+    if(origGp!=null){ projGS -= origGp*orig.credits; projGC -= orig.credits; }
+    // 사본(예상성적) 기여분 추가
+    projEarn += copy.credits;
+    projGS += egp*copy.credits;
+    projGC += copy.credits;
+    projCount++;
+  }
+
+  // ② 일반 수강예정/수강중 (재수강예정 사본이 아닌 것들만 — 사본은 위에서 이미 처리)
   for(const c of projList){
     if(c.retake) continue;
+    if(c.retakePlanOf) continue; // 재수강예정 사본은 ①에서 이미 반영
     projEarn += (c.credits||0);
     const eg = c.expGrade || '-';           // 안전장치: 필드 없어도 기본값
     const egp = GMAP[eg];
@@ -1279,7 +1305,12 @@ function render(){
     }
     return ms&&mf&&statf&&sf;
   });
-  if(sCol)rows.sort((a,b)=>{let va=a[sCol],vb=b[sCol];if(sCol==='credits'){va=+va;vb=+vb;}return sAsc?(va<vb?-1:va>vb?1:0):(va>vb?-1:va<vb?1:0);});
+  if(sCol)rows.sort((a,b)=>{
+    let va=a[sCol],vb=b[sCol];
+    if(sCol==='credits'){va=+va;vb=+vb;}
+    if(sCol==='grade'){va=GRADE_ORDER[va]??11;vb=GRADE_ORDER[vb]??11;}
+    return sAsc?(va<vb?-1:va>vb?1:0):(va>vb?-1:va<vb?1:0);
+  });
 
   // ── 학기 요약 ──
   const sumEl=document.getElementById('semSummary');
@@ -1395,11 +1426,15 @@ function render(){
       }).join('')}</div>`;
     }
 
-    // retake cell: 체크박스 + 재수강예정 버튼만 (전 성적 표시 없음)
+    // retake cell: 체크박스 + 재수강예정 버튼 (원본/사본 구분 표시)
+    const isRetakeCopy = !!c.retakePlanOf;
+    const hasLinkedPlan = !!c.retakePlan; // 원본에 사본이 연결되어 있음
+    const retakePlanBtnLabel = isRetakeCopy ? '재수강예정 사본 ✓' : (hasLinkedPlan ? '재수강예정 ✓' : '재수강예정');
+    const retakePlanBtnTitle = isRetakeCopy ? '클릭하면 이 재수강예정 사본을 삭제해요' : (hasLinkedPlan ? '클릭하면 재수강예정을 취소해요' : '클릭하면 재수강예정 과목을 새로 만들어요 (원본 성적은 유지)');
     const retakeCell=`<div class="retake-cell">
       <div class="cb${c.retake?' on':''}" onclick="toggleRetake('${c.id}')" title="${c.retake?'재수강 해제':'재수강 표시'}"></div>
       ${c.retake?`<span style="font-size:11px;color:var(--orange);font-weight:600">재수강</span>`:''}
-      <button class="retake-plan-btn${c.retakePlan?' on':''}" onclick="toggleRetakePlan('${c.id}')">${c.retakePlan?'재수강예정 ✓':'재수강예정'}</button>
+      <button class="retake-plan-btn${(isRetakeCopy||hasLinkedPlan)?' on':''}" onclick="toggleRetakePlan('${c.id}')" title="${retakePlanBtnTitle}">${retakePlanBtnLabel}</button>
     </div>`;
 
     // category cell: 클릭하면 인라인 select로 변경 가능
@@ -1415,7 +1450,7 @@ function render(){
 
     return`<tr class="${rowCls}">
       <td class="chk-col"><input type="checkbox" class="rchk" data-id="${c.id}" ${selectedIds.has(c.id)?'checked':''} onchange="toggleRowSelect('${c.id}',this.checked)"></td>
-      <td style="font-weight:600;min-width:120px;${isExcluded?'text-decoration:line-through;color:var(--muted)':''}">${c.name}${isExcluded?'<span style="font-size:9px;background:#fee2e2;color:var(--red);border-radius:4px;padding:1px 4px;margin-left:4px;font-weight:600;vertical-align:middle">계산제외</span>':''}</td>
+      <td style="font-weight:600;min-width:120px;${isExcluded?'text-decoration:line-through;color:var(--muted)':''}">${c.name}${isExcluded?'<span style="font-size:9px;background:#fee2e2;color:var(--red);border-radius:4px;padding:1px 4px;margin-left:4px;font-weight:600;vertical-align:middle">계산제외</span>':''}${c.retakePlanOf?'<span style="font-size:9px;background:#ede9fe;color:var(--purple);border-radius:4px;padding:1px 4px;margin-left:4px;font-weight:600;vertical-align:middle">재수강예정 사본</span>':''}</td>
       <td style="font-weight:700;text-align:center;${isExcluded?'color:var(--muted);text-decoration:line-through':''}">${c.credits}</td>
       <td style="color:var(--muted);text-align:center;font-size:12px">${c.semester||'—'}</td>
       <td style="text-align:center">${semCell}</td>
@@ -1542,19 +1577,52 @@ function closeRetakeSemPop(){
 
 function toggleRetakePlan(id){
   const c=C.find(x=>x.id===id);if(!c)return;
-  if(c.retakePlan){
-    // 해제 → 미수강으로
-    c.retakePlan=false;
-    c.status='미수강';
-    c.planSem='';
+
+  // 케이스 1: 이 행이 이미 생성된 "재수강예정 사본"인 경우 → 사본 삭제 + 원본 플래그 해제
+  if(c.retakePlanOf){
+    const origId=c.retakePlanOf;
+    C=C.filter(x=>x.id!==id);
+    const orig=C.find(x=>x.id===origId);
+    if(orig) orig.retakePlan=false;
     sv();updStats();render();
-  } else {
-    // 활성화 → 먼저 상태/planSem 세팅 후 학기 선택 팝업
-    c.retakePlan=true;
-    c.status='수강예정';
-    sv();updStats();render();
-    openRetakePlanSemPop(id);
+    return;
   }
+
+  // 케이스 2: 이 행이 원본이고, 이미 연결된 사본이 있는 경우 → 사본들 삭제 + 플래그 해제
+  if(c.retakePlan){
+    C=C.filter(x=>x.retakePlanOf!==id);
+    c.retakePlan=false;
+    sv();updStats();render();
+    return;
+  }
+
+  // 케이스 3: 수강완료 과목 → 원본은 그대로 두고 재수강예정 "사본" 새로 생성
+  if(c.status==='수강완료'){
+    c.retakePlan=true;
+    const copy={
+      ...c,
+      id:Date.now().toString()+Math.random().toString(36).slice(2),
+      retakePlanOf:id,
+      retakePlan:true,
+      retake:false,
+      status:'수강예정',
+      grade:'-',
+      expGrade:'-',
+      planSem:'',
+      takeSem:'',
+      prevGrade:'-',
+    };
+    C.push(copy);
+    sv();updStats();render();
+    openRetakePlanSemPop(copy.id);
+    return;
+  }
+
+  // 케이스 4: 완료되지 않은 과목 → 기존처럼 이 행 자체를 수강예정으로 전환
+  c.retakePlan=true;
+  c.status='수강예정';
+  sv();updStats();render();
+  openRetakePlanSemPop(id);
 }
 
 function openRetakePlanSemPop(id){
@@ -1761,13 +1829,28 @@ function saveAdd(){
     semester:recSem,takeSem:takeSem,planSem:'',
     grade:'-',prevGrade:'-',expGrade:'-',
     status:'수강완료',   // 기본값: 수강완료
-    retake:false,retakePlan:false,
+    retake:false,retakePlan:false,retakePlanOf:null,
   };
   C.push(c);sv();updStats();render();closeAddDirect();
 }
 
 // ── DELETE / BULK ──
-function delC(id){C=C.filter(c=>c.id!==id);selectedIds.delete(id);sv();updStats();render();}
+function delC(id){
+  const target=C.find(x=>x.id===id);
+  C=C.filter(c=>c.id!==id);
+  selectedIds.delete(id);
+  if(target){
+    if(target.retakePlanOf){
+      // 사본 삭제 시 원본 플래그 해제
+      const orig=C.find(x=>x.id===target.retakePlanOf);
+      if(orig) orig.retakePlan=false;
+    } else if(target.retakePlan){
+      // 원본 삭제 시 연결된 사본도 같이 삭제
+      C=C.filter(c=>c.retakePlanOf!==id);
+    }
+  }
+  sv();updStats();render();
+}
 
 function toggleRowSelect(id, checked){
   if(checked) selectedIds.add(id); else selectedIds.delete(id);
