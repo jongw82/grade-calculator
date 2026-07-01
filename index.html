@@ -50,7 +50,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:1
 .csec{padding:14px 28px;background:var(--surface);border-bottom:1px solid var(--border)}
 .csec-title{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between}
 .ytag{background:var(--accent);color:#fff;font-size:10px;padding:2px 8px;border-radius:999px;font-weight:700}
-.ccards{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}
+.ccards{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
 .ccard{background:var(--bg);border:1.5px solid var(--border);border-radius:12px;padding:12px 14px;transition:all .25s}
 .ccard.done{border-color:var(--green);background:var(--green-light)}
 .cc-lbl{font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-bottom:7px}
@@ -206,6 +206,7 @@ tbody tr.retake-plan-row{background:#faf5ff}
 .badge-교필{background:var(--yellow-light);color:var(--yellow);border:1px solid #fde68a}       /* 공통교양필수 */
 .badge-교선{background:var(--green-light);color:var(--green);border:1px solid #bbf7d0}        /* 균형교양필수 */
 .badge-학기초{background:var(--orange-light);color:var(--orange);border:1px solid #fed7aa}    /* 학문기초교양필수 */
+.badge-전기{background:#e0f2fe;color:var(--blue);border:1px solid #7dd3fc}    /* 전공기초 (24학번~) */
 .badge-기타{background:var(--surface2);color:var(--muted);border:1px solid var(--border)}
 
 .del-btn{background:none;border:none;cursor:pointer;color:var(--muted);font-size:13px;padding:3px 5px;border-radius:5px;transition:all .15s}
@@ -334,7 +335,7 @@ input[type=checkbox]{width:14px;height:14px;accent-color:var(--accent);cursor:po
 <!-- 분류별 평균 GPA -->
 <div style="padding:12px 28px;background:var(--surface);border-bottom:1px solid var(--border)">
   <div style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px">분류별 평균 학점</div>
-  <div id="catGPA" style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px"></div>
+  <div id="catGPA" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px"></div>
 </div>
 
 <div class="csec">
@@ -353,6 +354,7 @@ input[type=checkbox]{width:14px;height:14px;accent-color:var(--accent);cursor:po
       <button class="ftab" onclick="setF('전선',this)">전공선택</button>
       <button class="ftab" onclick="setF('교필',this)">공통교필</button>
       <button class="ftab" onclick="setF('학기초',this)">학문기초교필</button>
+      <button class="ftab" onclick="setF('전기',this)">전공기초</button>
       <button class="ftab" onclick="setF('교선',this)">균형교필</button>
       <button class="ftab" onclick="setF('기타',this)">교양선택</button>
     </div>
@@ -432,7 +434,7 @@ input[type=checkbox]{width:14px;height:14px;accent-color:var(--accent);cursor:po
       <select class="finp" id="aCat">
         <option value="전필">전공필수 (전필)</option><option value="전선">전공선택 (전선)</option>
         <option value="교필">공통교양필수 (공통교필)</option><option value="교선">균형교양필수 (균형교필)</option>
-        <option value="학기초">학문기초교양필수 (학기초)</option><option value="기타">교양선택 (기타)</option>
+        <option value="학기초">학문기초교양필수 (학기초)</option><option value="전기">전공기초 (전기)</option><option value="기타">교양선택 (기타)</option>
       </select>
     </div>
     <div class="fg"><label class="flbl">필수선수 과목</label><input class="finp" id="aPre" type="text" placeholder="예: 구조역학1"></div>
@@ -496,9 +498,9 @@ input[type=checkbox]{width:14px;height:14px;accent-color:var(--accent);cursor:po
 <script>
 // ── DATA ──
 const GRAD={
-  2026:{공통:12,균형:9,학기초:13,전필:21,전선:39,total:130},
-  2025:{공통:13,균형:9,학기초:12,전필:21,전선:39,total:130},
-  2024:{공통:13,균형:9,학기초:12,전필:21,전선:39,total:130},
+  2026:{공통:12,균형:9,학기초:12,전기:13,전필:21,전선:39,total:130},
+  2025:{공통:13,균형:9,학기초:12,전기:12,전필:21,전선:39,total:130},
+  2024:{공통:13,균형:9,학기초:12,전기:12,전필:21,전선:39,total:130},
   2023:{공통:13,균형:6,학기초:30,전필:27,전선:36,total:130},
   2022:{공통:13,균형:6,학기초:30,전필:27,전선:36,total:130},
   2021:{공통:14,균형:0,학기초:24,전필:27,전선:36,total:130},
@@ -516,10 +518,341 @@ function gClass(g){
   return`gc-${k||'-'}`;
 }
 
-// 교과과정 프리셋 — 학번별 데이터를 여기에 추가
-// 예시: const PRESET_2022 = [ {name:'과목명', credits:3, dc:0, semester:'1-1', category:'전필', prereq:'', prereqRec:''}, ... ];
-// const PRESETS = { 2022: PRESET_2022 };
-const PRESETS = {};
+// 교과과정 프리셋 — 학번별 데이터 (건축공학과 22~26학번)
+const PRESET_2022 = [
+    {name:'한국현대사',credits:3,dc:0,semester:'',category:'교선',prereq:'',prereqRec:''},
+    {name:'동서양의사상과윤리',credits:3,dc:0,semester:'',category:'교선',prereq:'',prereqRec:''},
+    {name:'성서와기독교',credits:3,dc:0,semester:'',category:'교선',prereq:'',prereqRec:''},
+    {name:'세계사',credits:3,dc:0,semester:'',category:'교선',prereq:'',prereqRec:''},
+    {name:'경영학',credits:3,dc:0,semester:'',category:'교선',prereq:'',prereqRec:''},
+    {name:'경제학',credits:3,dc:0,semester:'',category:'교선',prereq:'',prereqRec:''},
+    {name:'미디어빅뱅과방송',credits:3,dc:0,semester:'',category:'교선',prereq:'',prereqRec:''},
+    {name:'현대사회와법',credits:3,dc:0,semester:'',category:'교선',prereq:'',prereqRec:''},
+    {name:'융합예술의이해',credits:3,dc:0,semester:'',category:'교선',prereq:'',prereqRec:''},
+    {name:'컴퓨터게임과메타버스',credits:3,dc:0,semester:'',category:'교선',prereq:'',prereqRec:''},
+    {name:'한국의문화와한류',credits:3,dc:0,semester:'',category:'교선',prereq:'',prereqRec:''},
+    {name:'현대예술의이해',credits:3,dc:0,semester:'',category:'교선',prereq:'',prereqRec:''},
+    {name:'창업과기업가정신1',credits:1,dc:0,semester:'1-1',category:'교필',prereq:'',prereqRec:''},
+    {name:'문제해결을위한글쓰기와발표',credits:3,dc:0,semester:'1-1',category:'교필',prereq:'',prereqRec:''},
+    {name:'우주자연인간',credits:1,dc:0,semester:'1-1',category:'교필',prereq:'',prereqRec:''},
+    {name:'신입생세미나A',credits:1,dc:0,semester:'1-1',category:'교필',prereq:'',prereqRec:''},
+    {name:'미적분학1',credits:3,dc:0,semester:'1-1',category:'학기초',prereq:'',prereqRec:''},
+    {name:'SW기초코딩',credits:3,dc:0,semester:'1-1',category:'학기초',prereq:'',prereqRec:''},
+    {name:'건축공학개론',credits:3,dc:0,semester:'1-1',category:'전필',prereq:'',prereqRec:''},
+    {name:'서양철학:쟁점과토론',credits:3,dc:0,semester:'1-2',category:'교필',prereq:'',prereqRec:''},
+    {name:'신입생세미나B',credits:1,dc:0,semester:'1-2',category:'교필',prereq:'',prereqRec:''},
+    {name:'대학영어',credits:2,dc:0,semester:'1-2',category:'교필',prereq:'',prereqRec:''},
+    {name:'고급프로그래밍활용',credits:3,dc:0,semester:'1-2',category:'학기초',prereq:'',prereqRec:''},
+    {name:'건축기초설계',credits:3,dc:0,semester:'1-2',category:'전필',prereq:'',prereqRec:''},
+    {name:'공업수학1',credits:3,dc:0,semester:'2-1',category:'학기초',prereq:'',prereqRec:''},
+    {name:'일반물리학1',credits:3,dc:0,semester:'2-1',category:'학기초',prereq:'',prereqRec:''},
+    {name:'일반화학1',credits:3,dc:0,semester:'2-1',category:'학기초',prereq:'',prereqRec:''},
+    {name:'창의공학설계',credits:3,dc:0,semester:'2-1',category:'전필',prereq:'',prereqRec:''},
+    {name:'건축구조시스템',credits:3,dc:0,semester:'2-1',category:'전선',prereq:'',prereqRec:''},
+    {name:'건축환경개론',credits:3,dc:0,semester:'2-1',category:'전선',prereq:'',prereqRec:''},
+    {name:'공업수학2',credits:3,dc:0,semester:'2-2',category:'학기초',prereq:'',prereqRec:''},
+    {name:'일반물리학2',credits:3,dc:0,semester:'2-2',category:'학기초',prereq:'',prereqRec:''},
+    {name:'고급인공지능활용',credits:3,dc:0,semester:'2-2',category:'학기초',prereq:'',prereqRec:''},
+    {name:'구조역학1',credits:3,dc:0,semester:'2-2',category:'전필',prereq:'',prereqRec:''},
+    {name:'건축디지털설계',credits:3,dc:0,semester:'2-2',category:'전필',prereq:'',prereqRec:''},
+    {name:'건축설비개론',credits:3,dc:0,semester:'2-2',category:'전선',prereq:'',prereqRec:''},
+    {name:'통계학개론',credits:3,dc:0,semester:'3-1',category:'학기초',prereq:'',prereqRec:''},
+    {name:'구조역학2',credits:3,dc:0,semester:'3-1',category:'전필',prereq:'',prereqRec:''},
+    {name:'건축환경설계',credits:3,dc:0,semester:'3-1',category:'전필',prereq:'',prereqRec:''},
+    {name:'건축일반구조',credits:3,dc:0,semester:'3-1',category:'전선',prereq:'',prereqRec:''},
+    {name:'건축기계설비시스템',credits:3,dc:0,semester:'3-1',category:'전선',prereq:'',prereqRec:''},
+    {name:'철근콘크리트공학',credits:3,dc:0,semester:'3-1',category:'전선',prereq:'',prereqRec:''},
+    {name:'건설관리및경영',credits:3,dc:0,semester:'3-1',category:'전선',prereq:'',prereqRec:''},
+    {name:'건축재료',credits:3,dc:0,semester:'3-2',category:'전선',prereq:'',prereqRec:''},
+    {name:'건축법규',credits:3,dc:0,semester:'3-2',category:'전선',prereq:'',prereqRec:''},
+    {name:'건축구조해석',credits:3,dc:0,semester:'3-2',category:'전선',prereq:'',prereqRec:''},
+    {name:'건축시공',credits:3,dc:0,semester:'3-2',category:'전선',prereq:'',prereqRec:''},
+    {name:'철근콘크리트설계',credits:3,dc:0,semester:'3-2',category:'전선',prereq:'',prereqRec:''},
+    {name:'건축환경설비해석',credits:3,dc:0,semester:'3-2',category:'전선',prereq:'',prereqRec:''},
+    {name:'특수구조개론',credits:3,dc:0,semester:'3-2',category:'전선',prereq:'',prereqRec:''},
+    {name:'취창업과진로설계',credits:1,dc:0,semester:'4-1',category:'교필',prereq:'',prereqRec:''},
+    {name:'공학설계A',credits:3,dc:0,semester:'4-1',category:'전필',prereq:'',prereqRec:''},
+    {name:'철골구조',credits:3,dc:0,semester:'4-1',category:'전선',prereq:'',prereqRec:''},
+    {name:'건축전기설비시스템',credits:3,dc:0,semester:'4-1',category:'전선',prereq:'',prereqRec:''},
+    {name:'건축실무',credits:3,dc:0,semester:'4-1',category:'전선',prereq:'',prereqRec:''},
+    {name:'구조계획및설계',credits:3,dc:0,semester:'4-1',category:'전선',prereq:'',prereqRec:''},
+    {name:'졸업연구및진로1',credits:1,dc:0,semester:'4-1',category:'전선',prereq:'',prereqRec:''},
+    {name:'공학설계B',credits:3,dc:0,semester:'4-2',category:'전필',prereq:'',prereqRec:''},
+    {name:'컴퓨터구조해석',credits:3,dc:0,semester:'4-2',category:'전선',prereq:'',prereqRec:''},
+    {name:'건축조명',credits:3,dc:0,semester:'4-2',category:'전선',prereq:'',prereqRec:''},
+    {name:'건설IT',credits:3,dc:0,semester:'4-2',category:'전선',prereq:'',prereqRec:''},
+    {name:'스마트구조개론',credits:3,dc:0,semester:'4-2',category:'전선',prereq:'',prereqRec:''},
+    {name:'졸업연구및진로2',credits:1,dc:0,semester:'4-2',category:'전선',prereq:'',prereqRec:''},
+];
+
+const PRESET_2023 = [
+    {name:'한국현대사',credits:3,dc:0,semester:'',category:'교선',prereq:'',prereqRec:''},
+    {name:'동서양의사상과윤리',credits:3,dc:0,semester:'',category:'교선',prereq:'',prereqRec:''},
+    {name:'성서와기독교',credits:3,dc:0,semester:'',category:'교선',prereq:'',prereqRec:''},
+    {name:'세계사',credits:3,dc:0,semester:'',category:'교선',prereq:'',prereqRec:''},
+    {name:'경영학',credits:3,dc:0,semester:'',category:'교선',prereq:'',prereqRec:''},
+    {name:'경제학',credits:3,dc:0,semester:'',category:'교선',prereq:'',prereqRec:''},
+    {name:'미디어빅뱅과방송',credits:3,dc:0,semester:'',category:'교선',prereq:'',prereqRec:''},
+    {name:'현대사회와법',credits:3,dc:0,semester:'',category:'교선',prereq:'',prereqRec:''},
+    {name:'융합예술의이해',credits:3,dc:0,semester:'',category:'교선',prereq:'',prereqRec:''},
+    {name:'컴퓨터게임과메타버스',credits:3,dc:0,semester:'',category:'교선',prereq:'',prereqRec:''},
+    {name:'한국의문화와한류',credits:3,dc:0,semester:'',category:'교선',prereq:'',prereqRec:''},
+    {name:'현대예술의이해',credits:3,dc:0,semester:'',category:'교선',prereq:'',prereqRec:''},
+    {name:'창업과기업가정신1',credits:1,dc:0,semester:'1-1',category:'교필',prereq:'',prereqRec:''},
+    {name:'문제해결을위한글쓰기와발표',credits:3,dc:0,semester:'1-1',category:'교필',prereq:'',prereqRec:''},
+    {name:'우주자연인간',credits:1,dc:0,semester:'1-1',category:'교필',prereq:'',prereqRec:''},
+    {name:'신입생세미나A',credits:1,dc:0,semester:'1-1',category:'교필',prereq:'',prereqRec:''},
+    {name:'미적분학1',credits:3,dc:0,semester:'1-1',category:'학기초',prereq:'',prereqRec:''},
+    {name:'SW기초코딩',credits:3,dc:0,semester:'1-1',category:'학기초',prereq:'',prereqRec:''},
+    {name:'건축공학개론',credits:3,dc:0,semester:'1-1',category:'전필',prereq:'',prereqRec:''},
+    {name:'서양철학:쟁점과토론',credits:3,dc:0,semester:'1-2',category:'교필',prereq:'',prereqRec:''},
+    {name:'신입생세미나B',credits:1,dc:0,semester:'1-2',category:'교필',prereq:'',prereqRec:''},
+    {name:'대학영어',credits:2,dc:0,semester:'1-2',category:'교필',prereq:'',prereqRec:''},
+    {name:'고급프로그래밍활용',credits:3,dc:0,semester:'1-2',category:'학기초',prereq:'',prereqRec:''},
+    {name:'건축기초설계',credits:3,dc:0,semester:'1-2',category:'전필',prereq:'',prereqRec:''},
+    {name:'공업수학1',credits:3,dc:0,semester:'2-1',category:'학기초',prereq:'',prereqRec:''},
+    {name:'일반물리학1',credits:3,dc:0,semester:'2-1',category:'학기초',prereq:'',prereqRec:''},
+    {name:'일반화학1',credits:3,dc:0,semester:'2-1',category:'학기초',prereq:'',prereqRec:''},
+    {name:'창의공학설계',credits:3,dc:0,semester:'2-1',category:'전필',prereq:'',prereqRec:''},
+    {name:'건축구조시스템',credits:3,dc:0,semester:'2-1',category:'전선',prereq:'',prereqRec:''},
+    {name:'건축환경개론',credits:3,dc:0,semester:'2-1',category:'전선',prereq:'',prereqRec:''},
+    {name:'공업수학2',credits:3,dc:0,semester:'2-2',category:'학기초',prereq:'',prereqRec:''},
+    {name:'일반물리학2',credits:3,dc:0,semester:'2-2',category:'학기초',prereq:'',prereqRec:''},
+    {name:'고급인공지능활용',credits:3,dc:0,semester:'2-2',category:'학기초',prereq:'',prereqRec:''},
+    {name:'구조역학1',credits:3,dc:0,semester:'2-2',category:'전필',prereq:'',prereqRec:''},
+    {name:'건축디지털설계',credits:3,dc:0,semester:'2-2',category:'전필',prereq:'',prereqRec:''},
+    {name:'건축설비개론',credits:3,dc:0,semester:'2-2',category:'전선',prereq:'',prereqRec:''},
+    {name:'통계학개론',credits:3,dc:0,semester:'3-1',category:'학기초',prereq:'',prereqRec:''},
+    {name:'구조역학2',credits:3,dc:0,semester:'3-1',category:'전필',prereq:'',prereqRec:''},
+    {name:'건축환경설계',credits:3,dc:0,semester:'3-1',category:'전필',prereq:'',prereqRec:''},
+    {name:'건축일반구조',credits:3,dc:0,semester:'3-1',category:'전선',prereq:'',prereqRec:''},
+    {name:'건축기계설비시스템',credits:3,dc:0,semester:'3-1',category:'전선',prereq:'',prereqRec:''},
+    {name:'철근콘크리트공학',credits:3,dc:0,semester:'3-1',category:'전선',prereq:'',prereqRec:''},
+    {name:'건설관리및경영',credits:3,dc:0,semester:'3-1',category:'전선',prereq:'',prereqRec:''},
+    {name:'건축재료',credits:3,dc:0,semester:'3-2',category:'전선',prereq:'',prereqRec:''},
+    {name:'건축법규',credits:3,dc:0,semester:'3-2',category:'전선',prereq:'',prereqRec:''},
+    {name:'건축구조해석',credits:3,dc:0,semester:'3-2',category:'전선',prereq:'',prereqRec:''},
+    {name:'건축시공',credits:3,dc:0,semester:'3-2',category:'전선',prereq:'',prereqRec:''},
+    {name:'철근콘크리트설계',credits:3,dc:0,semester:'3-2',category:'전선',prereq:'',prereqRec:''},
+    {name:'건축환경설비해석',credits:3,dc:0,semester:'3-2',category:'전선',prereq:'',prereqRec:''},
+    {name:'특수구조개론',credits:3,dc:0,semester:'3-2',category:'전선',prereq:'',prereqRec:''},
+    {name:'취창업과진로설계',credits:1,dc:0,semester:'4-1',category:'교필',prereq:'',prereqRec:''},
+    {name:'공학설계A',credits:3,dc:0,semester:'4-1',category:'전필',prereq:'',prereqRec:''},
+    {name:'철골구조',credits:3,dc:0,semester:'4-1',category:'전선',prereq:'',prereqRec:''},
+    {name:'건축전기설비시스템',credits:3,dc:0,semester:'4-1',category:'전선',prereq:'',prereqRec:''},
+    {name:'건축실무',credits:3,dc:0,semester:'4-1',category:'전선',prereq:'',prereqRec:''},
+    {name:'구조계획및설계',credits:3,dc:0,semester:'4-1',category:'전선',prereq:'',prereqRec:''},
+    {name:'졸업연구및진로1',credits:1,dc:0,semester:'4-1',category:'전선',prereq:'',prereqRec:''},
+    {name:'공학설계B',credits:3,dc:0,semester:'4-2',category:'전필',prereq:'',prereqRec:''},
+    {name:'컴퓨터구조해석',credits:3,dc:0,semester:'4-2',category:'전선',prereq:'',prereqRec:''},
+    {name:'건축조명',credits:3,dc:0,semester:'4-2',category:'전선',prereq:'',prereqRec:''},
+    {name:'건설IT',credits:3,dc:0,semester:'4-2',category:'전선',prereq:'',prereqRec:''},
+    {name:'스마트구조개론',credits:3,dc:0,semester:'4-2',category:'전선',prereq:'',prereqRec:''},
+    {name:'졸업연구및진로2',credits:1,dc:0,semester:'4-2',category:'전선',prereq:'',prereqRec:''},
+];
+
+const PRESET_2024 = [
+    {name:'창업과기업가정신1',credits:1,dc:0,semester:'',category:'교필',prereq:'',prereqRec:''},
+    {name:'문제해결을위한글쓰기와발표',credits:3,dc:0,semester:'',category:'교필',prereq:'',prereqRec:''},
+    {name:'서양철학:쟁점과토론',credits:3,dc:0,semester:'',category:'교필',prereq:'',prereqRec:''},
+    {name:'우주자연인간',credits:1,dc:0,semester:'',category:'교필',prereq:'',prereqRec:''},
+    {name:'대학영어',credits:2,dc:0,semester:'',category:'교필',prereq:'',prereqRec:''},
+    {name:'세종인을위한진로설계',credits:1,dc:0,semester:'',category:'교필',prereq:'',prereqRec:''},
+    {name:'세종인을위한전공탐색',credits:1,dc:0,semester:'',category:'교필',prereq:'',prereqRec:''},
+    {name:'한국현대사',credits:3,dc:0,semester:'',category:'교선',prereq:'',prereqRec:''},
+    {name:'동서양의사상과윤리',credits:3,dc:0,semester:'',category:'교선',prereq:'',prereqRec:''},
+    {name:'성서와기독교',credits:3,dc:0,semester:'',category:'교선',prereq:'',prereqRec:''},
+    {name:'세계사',credits:3,dc:0,semester:'',category:'교선',prereq:'',prereqRec:''},
+    {name:'경영학',credits:3,dc:0,semester:'',category:'교선',prereq:'',prereqRec:''},
+    {name:'경제학',credits:3,dc:0,semester:'',category:'교선',prereq:'',prereqRec:''},
+    {name:'미디어빅뱅과방송',credits:3,dc:0,semester:'',category:'교선',prereq:'',prereqRec:''},
+    {name:'현대사회와법',credits:3,dc:0,semester:'',category:'교선',prereq:'',prereqRec:''},
+    {name:'융합예술의이해',credits:3,dc:0,semester:'',category:'교선',prereq:'',prereqRec:''},
+    {name:'컴퓨터게임과메타버스',credits:3,dc:0,semester:'',category:'교선',prereq:'',prereqRec:''},
+    {name:'한국의문화와한류',credits:3,dc:0,semester:'',category:'교선',prereq:'',prereqRec:''},
+    {name:'현대예술의이해',credits:3,dc:0,semester:'',category:'교선',prereq:'',prereqRec:''},
+    {name:'미적분학1',credits:3,dc:0,semester:'1-1',category:'학기초',prereq:'',prereqRec:''},
+    {name:'SW기초코딩',credits:3,dc:0,semester:'1-1',category:'학기초',prereq:'',prereqRec:''},
+    {name:'일반물리학1',credits:3,dc:0,semester:'1-1',category:'전기',prereq:'',prereqRec:''},
+    {name:'미적분학2',credits:3,dc:0,semester:'1-2',category:'학기초',prereq:'',prereqRec:''},
+    {name:'고급프로그래밍활용',credits:3,dc:0,semester:'1-2',category:'학기초',prereq:'',prereqRec:''},
+    {name:'일반화학1',credits:3,dc:0,semester:'1-2',category:'전기',prereq:'',prereqRec:''},
+    {name:'공업수학1',credits:3,dc:0,semester:'2-1',category:'전기',prereq:'',prereqRec:''},
+    {name:'건축기초설계',credits:3,dc:0,semester:'2-1',category:'전필',prereq:'',prereqRec:''},
+    {name:'건축구조시스템',credits:3,dc:0,semester:'2-1',category:'전선',prereq:'',prereqRec:''},
+    {name:'건축환경개론',credits:3,dc:0,semester:'2-1',category:'전선',prereq:'',prereqRec:''},
+    {name:'건축공학개론',credits:3,dc:0,semester:'2-1',category:'전선',prereq:'',prereqRec:''},
+    {name:'공업수학2',credits:3,dc:0,semester:'2-2',category:'전기',prereq:'',prereqRec:''},
+    {name:'구조역학1',credits:3,dc:0,semester:'2-2',category:'전필',prereq:'',prereqRec:''},
+    {name:'건축설비개론',credits:3,dc:0,semester:'2-2',category:'전선',prereq:'',prereqRec:''},
+    {name:'건축디지털설계',credits:3,dc:0,semester:'2-2',category:'전선',prereq:'',prereqRec:''},
+    {name:'창의공학설계',credits:3,dc:0,semester:'2-2',category:'전선',prereq:'',prereqRec:''},
+    {name:'구조역학2',credits:3,dc:0,semester:'3-1',category:'전필',prereq:'',prereqRec:''},
+    {name:'건축환경설계',credits:3,dc:0,semester:'3-1',category:'전필',prereq:'',prereqRec:''},
+    {name:'건설관리및경영',credits:3,dc:0,semester:'3-1',category:'전필',prereq:'',prereqRec:''},
+    {name:'건축일반구조',credits:3,dc:0,semester:'3-1',category:'전선',prereq:'',prereqRec:''},
+    {name:'건축기계설비시스템',credits:3,dc:0,semester:'3-1',category:'전선',prereq:'',prereqRec:''},
+    {name:'철근콘크리트공학',credits:3,dc:0,semester:'3-1',category:'전선',prereq:'',prereqRec:''},
+    {name:'건축재료',credits:3,dc:0,semester:'3-2',category:'전선',prereq:'',prereqRec:''},
+    {name:'건축법규',credits:3,dc:0,semester:'3-2',category:'전선',prereq:'',prereqRec:''},
+    {name:'건축구조해석',credits:3,dc:0,semester:'3-2',category:'전선',prereq:'',prereqRec:''},
+    {name:'건축조명',credits:3,dc:0,semester:'3-2',category:'전선',prereq:'',prereqRec:''},
+    {name:'건축시공',credits:3,dc:0,semester:'3-2',category:'전선',prereq:'',prereqRec:''},
+    {name:'철근콘크리트설계',credits:3,dc:0,semester:'3-2',category:'전선',prereq:'',prereqRec:''},
+    {name:'특수구조개론',credits:3,dc:0,semester:'3-2',category:'전선',prereq:'',prereqRec:''},
+    {name:'취창업과진로설계',credits:1,dc:0,semester:'',category:'교필',prereq:'',prereqRec:''},
+    {name:'공학설계A',credits:3,dc:0,semester:'4-1',category:'전필',prereq:'',prereqRec:''},
+    {name:'철골구조',credits:3,dc:0,semester:'4-1',category:'전선',prereq:'',prereqRec:''},
+    {name:'건축전기설비시스템',credits:3,dc:0,semester:'4-1',category:'전선',prereq:'',prereqRec:''},
+    {name:'건축실무',credits:3,dc:0,semester:'4-1',category:'전선',prereq:'',prereqRec:''},
+    {name:'구조계획및설계',credits:3,dc:0,semester:'4-1',category:'전선',prereq:'',prereqRec:''},
+    {name:'졸업연구및진로1',credits:1,dc:0,semester:'4-1',category:'전선',prereq:'',prereqRec:''},
+    {name:'공학설계B',credits:3,dc:0,semester:'4-2',category:'전필',prereq:'',prereqRec:''},
+    {name:'컴퓨터구조해석',credits:3,dc:0,semester:'4-2',category:'전선',prereq:'',prereqRec:''},
+    {name:'건설IT',credits:3,dc:0,semester:'4-2',category:'전선',prereq:'',prereqRec:''},
+    {name:'건축환경설비해석',credits:3,dc:0,semester:'4-2',category:'전선',prereq:'',prereqRec:''},
+    {name:'스마트구조개론',credits:3,dc:0,semester:'4-2',category:'전선',prereq:'',prereqRec:''},
+    {name:'졸업연구및진로2',credits:1,dc:0,semester:'4-2',category:'전선',prereq:'',prereqRec:''},
+];
+
+const PRESET_2025 = [
+    {name:'창업과기업가정신1',credits:1,dc:0,semester:'',category:'교필',prereq:'',prereqRec:''},
+    {name:'문제해결을위한글쓰기와발표',credits:3,dc:0,semester:'',category:'교필',prereq:'',prereqRec:''},
+    {name:'서양철학:쟁점과토론',credits:3,dc:0,semester:'',category:'교필',prereq:'',prereqRec:''},
+    {name:'우주자연인간',credits:1,dc:0,semester:'',category:'교필',prereq:'',prereqRec:''},
+    {name:'대학영어',credits:2,dc:0,semester:'',category:'교필',prereq:'',prereqRec:''},
+    {name:'세종인을위한진로설계',credits:1,dc:0,semester:'',category:'교필',prereq:'',prereqRec:''},
+    {name:'세종인을위한전공탐색',credits:1,dc:0,semester:'',category:'교필',prereq:'',prereqRec:''},
+    {name:'한국현대사',credits:3,dc:0,semester:'',category:'교선',prereq:'',prereqRec:''},
+    {name:'동서양의사상과윤리',credits:3,dc:0,semester:'',category:'교선',prereq:'',prereqRec:''},
+    {name:'성서와기독교',credits:3,dc:0,semester:'',category:'교선',prereq:'',prereqRec:''},
+    {name:'세계사',credits:3,dc:0,semester:'',category:'교선',prereq:'',prereqRec:''},
+    {name:'경영학',credits:3,dc:0,semester:'',category:'교선',prereq:'',prereqRec:''},
+    {name:'경제학',credits:3,dc:0,semester:'',category:'교선',prereq:'',prereqRec:''},
+    {name:'미디어빅뱅과방송',credits:3,dc:0,semester:'',category:'교선',prereq:'',prereqRec:''},
+    {name:'현대사회와법',credits:3,dc:0,semester:'',category:'교선',prereq:'',prereqRec:''},
+    {name:'융합예술의이해',credits:3,dc:0,semester:'',category:'교선',prereq:'',prereqRec:''},
+    {name:'컴퓨터게임과메타버스',credits:3,dc:0,semester:'',category:'교선',prereq:'',prereqRec:''},
+    {name:'한국의문화와한류',credits:3,dc:0,semester:'',category:'교선',prereq:'',prereqRec:''},
+    {name:'현대예술의이해',credits:3,dc:0,semester:'',category:'교선',prereq:'',prereqRec:''},
+    {name:'미적분학1',credits:3,dc:0,semester:'1-1',category:'학기초',prereq:'',prereqRec:''},
+    {name:'SW기초코딩',credits:3,dc:0,semester:'1-1',category:'학기초',prereq:'',prereqRec:''},
+    {name:'일반물리학1',credits:3,dc:0,semester:'1-1',category:'전기',prereq:'',prereqRec:''},
+    {name:'미적분학2',credits:3,dc:0,semester:'1-2',category:'학기초',prereq:'',prereqRec:''},
+    {name:'고급프로그래밍활용',credits:3,dc:0,semester:'1-2',category:'학기초',prereq:'',prereqRec:''},
+    {name:'일반화학1',credits:3,dc:0,semester:'1-2',category:'전기',prereq:'',prereqRec:''},
+    {name:'공업수학1',credits:3,dc:0,semester:'2-1',category:'전기',prereq:'',prereqRec:''},
+    {name:'건축기초설계',credits:3,dc:0,semester:'2-1',category:'전필',prereq:'',prereqRec:''},
+    {name:'건축구조시스템',credits:3,dc:0,semester:'2-1',category:'전선',prereq:'',prereqRec:''},
+    {name:'건축환경개론',credits:3,dc:0,semester:'2-1',category:'전선',prereq:'',prereqRec:''},
+    {name:'건축공학개론',credits:3,dc:0,semester:'2-1',category:'전선',prereq:'',prereqRec:''},
+    {name:'공업수학2',credits:3,dc:0,semester:'2-2',category:'전기',prereq:'',prereqRec:''},
+    {name:'구조역학1',credits:3,dc:0,semester:'2-2',category:'전필',prereq:'',prereqRec:''},
+    {name:'건축설비개론',credits:3,dc:0,semester:'2-2',category:'전선',prereq:'',prereqRec:''},
+    {name:'건축디지털설계',credits:3,dc:0,semester:'2-2',category:'전선',prereq:'',prereqRec:''},
+    {name:'창의공학설계',credits:3,dc:0,semester:'2-2',category:'전선',prereq:'',prereqRec:''},
+    {name:'구조역학2',credits:3,dc:0,semester:'3-1',category:'전필',prereq:'',prereqRec:''},
+    {name:'건축환경설계',credits:3,dc:0,semester:'3-1',category:'전필',prereq:'',prereqRec:''},
+    {name:'건설관리및경영',credits:3,dc:0,semester:'3-1',category:'전필',prereq:'',prereqRec:''},
+    {name:'건축일반구조',credits:3,dc:0,semester:'3-1',category:'전선',prereq:'',prereqRec:''},
+    {name:'건축기계설비시스템',credits:3,dc:0,semester:'3-1',category:'전선',prereq:'',prereqRec:''},
+    {name:'철근콘크리트공학',credits:3,dc:0,semester:'3-1',category:'전선',prereq:'',prereqRec:''},
+    {name:'건축공학AI',credits:3,dc:0,semester:'3-1',category:'전선',prereq:'',prereqRec:''},
+    {name:'건축재료',credits:3,dc:0,semester:'3-2',category:'전선',prereq:'',prereqRec:''},
+    {name:'건축법규',credits:3,dc:0,semester:'3-2',category:'전선',prereq:'',prereqRec:''},
+    {name:'건축구조해석',credits:3,dc:0,semester:'3-2',category:'전선',prereq:'',prereqRec:''},
+    {name:'건축조명',credits:3,dc:0,semester:'3-2',category:'전선',prereq:'',prereqRec:''},
+    {name:'건축시공',credits:3,dc:0,semester:'3-2',category:'전선',prereq:'',prereqRec:''},
+    {name:'철근콘크리트설계',credits:3,dc:0,semester:'3-2',category:'전선',prereq:'',prereqRec:''},
+    {name:'특수구조개론',credits:3,dc:0,semester:'3-2',category:'전선',prereq:'',prereqRec:''},
+    {name:'취창업과진로설계',credits:1,dc:0,semester:'',category:'교필',prereq:'',prereqRec:''},
+    {name:'공학설계A',credits:3,dc:0,semester:'4-1',category:'전필',prereq:'',prereqRec:''},
+    {name:'철골구조',credits:3,dc:0,semester:'4-1',category:'전선',prereq:'',prereqRec:''},
+    {name:'건축전기설비시스템',credits:3,dc:0,semester:'4-1',category:'전선',prereq:'',prereqRec:''},
+    {name:'건축실무',credits:3,dc:0,semester:'4-1',category:'전선',prereq:'',prereqRec:''},
+    {name:'구조계획및설계',credits:3,dc:0,semester:'4-1',category:'전선',prereq:'',prereqRec:''},
+    {name:'졸업연구및진로1',credits:1,dc:0,semester:'4-1',category:'전선',prereq:'',prereqRec:''},
+    {name:'공학설계B',credits:3,dc:0,semester:'4-2',category:'전필',prereq:'',prereqRec:''},
+    {name:'컴퓨터구조해석',credits:3,dc:0,semester:'4-2',category:'전선',prereq:'',prereqRec:''},
+    {name:'건설IT',credits:3,dc:0,semester:'4-2',category:'전선',prereq:'',prereqRec:''},
+    {name:'건축환경설비해석',credits:3,dc:0,semester:'4-2',category:'전선',prereq:'',prereqRec:''},
+    {name:'스마트구조개론',credits:3,dc:0,semester:'4-2',category:'전선',prereq:'',prereqRec:''},
+    {name:'졸업연구및진로2',credits:1,dc:0,semester:'4-2',category:'전선',prereq:'',prereqRec:''},
+];
+
+const PRESET_2026 = [
+    {name:'한국현대사',credits:3,dc:0,semester:'',category:'교선',prereq:'',prereqRec:''},
+    {name:'인지과학:마음,언어,기계',credits:3,dc:0,semester:'',category:'교선',prereq:'',prereqRec:''},
+    {name:'복지국가의이해',credits:3,dc:0,semester:'',category:'교선',prereq:'',prereqRec:''},
+    {name:'공간과인간:인문,예술,공학의융합',credits:3,dc:0,semester:'',category:'교선',prereq:'',prereqRec:''},
+    {name:'융합적사고',credits:3,dc:0,semester:'',category:'교선',prereq:'',prereqRec:''},
+    {name:'융합적사고에기반한인문사회계글쓰기',credits:3,dc:0,semester:'',category:'교선',prereq:'',prereqRec:''},
+    {name:'융합적사고에기반한이공계글쓰기',credits:3,dc:0,semester:'',category:'교선',prereq:'',prereqRec:''},
+    {name:'동서양의사상과윤리',credits:3,dc:0,semester:'',category:'교선',prereq:'',prereqRec:''},
+    {name:'성서와기독교',credits:3,dc:0,semester:'',category:'교선',prereq:'',prereqRec:''},
+    {name:'세계사',credits:3,dc:0,semester:'',category:'교선',prereq:'',prereqRec:''},
+    {name:'경영학',credits:3,dc:0,semester:'',category:'교선',prereq:'',prereqRec:''},
+    {name:'경제학',credits:3,dc:0,semester:'',category:'교선',prereq:'',prereqRec:''},
+    {name:'미디어빅뱅과방송',credits:3,dc:0,semester:'',category:'교선',prereq:'',prereqRec:''},
+    {name:'현대사회와법',credits:3,dc:0,semester:'',category:'교선',prereq:'',prereqRec:''},
+    {name:'융합예술의이해',credits:3,dc:0,semester:'',category:'교선',prereq:'',prereqRec:''},
+    {name:'컴퓨터게임과메타버스',credits:3,dc:0,semester:'',category:'교선',prereq:'',prereqRec:''},
+    {name:'한국의문화와한류',credits:3,dc:0,semester:'',category:'교선',prereq:'',prereqRec:''},
+    {name:'현대예술의이해',credits:3,dc:0,semester:'',category:'교선',prereq:'',prereqRec:''},
+    {name:'기계,인간,지능',credits:3,dc:0,semester:'',category:'교선',prereq:'',prereqRec:''},
+    {name:'심리학과인공지능',credits:3,dc:0,semester:'',category:'교선',prereq:'',prereqRec:''},
+    {name:'우주와문명',credits:3,dc:0,semester:'',category:'교선',prereq:'',prereqRec:''},
+    {name:'융합과학탐구',credits:3,dc:0,semester:'',category:'교선',prereq:'',prereqRec:''},
+    {name:'세종인을위한진로설계',credits:1,dc:0,semester:'1-1',category:'교필',prereq:'',prereqRec:''},
+    {name:'비판적사고와창의적글쓰기',credits:3,dc:0,semester:'1-1',category:'교필',prereq:'',prereqRec:''},
+    {name:'미적분학1',credits:3,dc:0,semester:'1-1',category:'학기초',prereq:'',prereqRec:''},
+    {name:'SW기초코딩',credits:3,dc:0,semester:'1-1',category:'학기초',prereq:'',prereqRec:''},
+    {name:'일반물리학1',credits:4,dc:0,semester:'1-1',category:'전기',prereq:'',prereqRec:''},
+    {name:'서양철학:쟁점과토론',credits:3,dc:0,semester:'1-2',category:'교필',prereq:'',prereqRec:''},
+    {name:'대학영어',credits:2,dc:0,semester:'1-2',category:'교필',prereq:'',prereqRec:''},
+    {name:'세종인을위한전공탐색',credits:1,dc:0,semester:'1-2',category:'교필',prereq:'',prereqRec:''},
+    {name:'미적분학2',credits:3,dc:0,semester:'1-2',category:'학기초',prereq:'',prereqRec:''},
+    {name:'고급프로그래밍활용',credits:3,dc:0,semester:'1-2',category:'학기초',prereq:'',prereqRec:''},
+    {name:'일반화학1',credits:3,dc:0,semester:'1-2',category:'전기',prereq:'',prereqRec:''},
+    {name:'창업과기업가정신',credits:1,dc:0,semester:'2-1',category:'교필',prereq:'',prereqRec:''},
+    {name:'공업수학1',credits:3,dc:0,semester:'2-1',category:'전기',prereq:'',prereqRec:''},
+    {name:'건축기초설계',credits:3,dc:0,semester:'2-1',category:'전필',prereq:'',prereqRec:''},
+    {name:'건축구조시스템',credits:3,dc:0,semester:'2-1',category:'전선',prereq:'',prereqRec:''},
+    {name:'건축환경개론',credits:3,dc:0,semester:'2-1',category:'전선',prereq:'',prereqRec:''},
+    {name:'공업수학2',credits:3,dc:0,semester:'2-2',category:'전기',prereq:'',prereqRec:''},
+    {name:'구조역학1',credits:3,dc:0,semester:'2-2',category:'전필',prereq:'',prereqRec:''},
+    {name:'건축설비개론',credits:3,dc:0,semester:'2-2',category:'전선',prereq:'',prereqRec:''},
+    {name:'건축디지털설계',credits:3,dc:0,semester:'2-2',category:'전선',prereq:'',prereqRec:''},
+    {name:'창의공학설계',credits:3,dc:0,semester:'2-2',category:'전선',prereq:'',prereqRec:''},
+    {name:'취창업과진로역량개발',credits:1,dc:0,semester:'3-1',category:'교필',prereq:'',prereqRec:''},
+    {name:'구조역학2',credits:3,dc:0,semester:'3-1',category:'전필',prereq:'',prereqRec:''},
+    {name:'건축환경설계',credits:3,dc:0,semester:'3-1',category:'전필',prereq:'',prereqRec:''},
+    {name:'건설관리및경영',credits:3,dc:0,semester:'3-1',category:'전필',prereq:'',prereqRec:''},
+    {name:'건축일반구조',credits:3,dc:0,semester:'3-1',category:'전선',prereq:'',prereqRec:''},
+    {name:'건축기계설비시스템',credits:3,dc:0,semester:'3-1',category:'전선',prereq:'',prereqRec:''},
+    {name:'철근콘크리트공학',credits:3,dc:0,semester:'3-1',category:'전선',prereq:'',prereqRec:''},
+    {name:'건축공학AI',credits:3,dc:0,semester:'3-1',category:'전선',prereq:'',prereqRec:''},
+    {name:'건축재료',credits:3,dc:0,semester:'3-2',category:'전선',prereq:'',prereqRec:''},
+    {name:'건축법규',credits:3,dc:0,semester:'3-2',category:'전선',prereq:'',prereqRec:''},
+    {name:'건축구조해석',credits:3,dc:0,semester:'3-2',category:'전선',prereq:'',prereqRec:''},
+    {name:'건축조명',credits:3,dc:0,semester:'3-2',category:'전선',prereq:'',prereqRec:''},
+    {name:'건축시공',credits:3,dc:0,semester:'3-2',category:'전선',prereq:'',prereqRec:''},
+    {name:'철근콘크리트설계',credits:3,dc:0,semester:'3-2',category:'전선',prereq:'',prereqRec:''},
+    {name:'특수구조개론',credits:3,dc:0,semester:'3-2',category:'전선',prereq:'',prereqRec:''},
+    {name:'공학설계A',credits:3,dc:0,semester:'4-1',category:'전필',prereq:'',prereqRec:''},
+    {name:'철골구조',credits:3,dc:0,semester:'4-1',category:'전선',prereq:'',prereqRec:''},
+    {name:'건축전기설비시스템',credits:3,dc:0,semester:'4-1',category:'전선',prereq:'',prereqRec:''},
+    {name:'건축실무',credits:3,dc:0,semester:'4-1',category:'전선',prereq:'',prereqRec:''},
+    {name:'구조계획및설계',credits:3,dc:0,semester:'4-1',category:'전선',prereq:'',prereqRec:''},
+    {name:'졸업연구및진로1',credits:1,dc:0,semester:'4-1',category:'전선',prereq:'',prereqRec:''},
+    {name:'공학설계B',credits:3,dc:0,semester:'4-2',category:'전필',prereq:'',prereqRec:''},
+    {name:'컴퓨터구조해석',credits:3,dc:0,semester:'4-2',category:'전선',prereq:'',prereqRec:''},
+    {name:'건설IT',credits:3,dc:0,semester:'4-2',category:'전선',prereq:'',prereqRec:''},
+    {name:'건축환경설비해석',credits:3,dc:0,semester:'4-2',category:'전선',prereq:'',prereqRec:''},
+    {name:'스마트구조개론',credits:3,dc:0,semester:'4-2',category:'전선',prereq:'',prereqRec:''},
+    {name:'졸업연구및진로2',credits:1,dc:0,semester:'4-2',category:'전선',prereq:'',prereqRec:''},
+];
+const PRESETS = { 2022: PRESET_2022, 2023: PRESET_2023, 2024: PRESET_2024, 2025: PRESET_2025, 2026: PRESET_2026 };
 
 // ── STATE ──
 let C=[],yr=2022,uname='',filt='전체',statusFilt='전체',semFilt='전체',sCol=null,sAsc=true;
@@ -711,6 +1044,7 @@ function updStats(){
     {key:'교필',label:'공통교필',gs:catGS['교필']||0,gc:catGC['교필']||0,color:'var(--yellow)'},
     {key:'학기초',label:'학문기초교필',gs:catGS['학기초']||0,gc:catGC['학기초']||0,color:'var(--orange)'},
     {key:'교선',label:'균형교필',gs:catGS['교선']||0,gc:catGC['교선']||0,color:'var(--green)'},
+    ...(req.전기!=null?[{key:'전기',label:'전공기초',gs:catGS['전기']||0,gc:catGC['전기']||0,color:'var(--blue)'}]:[]),
   ];
   document.getElementById('catGPA').innerHTML=catDefs.map(d=>{
     const gpa=d.gc>0?(d.gs/d.gc).toFixed(2):'—';
@@ -727,6 +1061,7 @@ function updStats(){
     {l:'공통교양필수',e:cat['교필']||0,p:catPlan['교필']||0,  n:req.공통,   ci:'c2'},
     {l:'균형교양필수',e:cat['교선']||0,p:catPlan['교선']||0,  n:req.균형,   ci:'c1'},
     {l:'학문기초교양필수',e:cat['학기초']||0,p:catPlan['학기초']||0,n:req.학기초,ci:'c3'},
+    ...(req.전기!=null?[{l:'전공기초',e:cat['전기']||0,p:catPlan['전기']||0,n:req.전기,ci:'c3'}]:[]),
     {l:'총 취득 학점',e:earn,          p:planEarn,             n:req.total,  ci:'c4'},
   ];
   document.getElementById('ccards').innerHTML=defs.map(d=>{
@@ -760,7 +1095,7 @@ function updStats(){
 const CAT_LABEL={
   '전필':'전공필수','전선':'전공선택',
   '교필':'공통교필','교선':'균형교필',
-  '학기초':'학문기초교필','기타':'교양선택'
+  '학기초':'학문기초교필','전기':'전공기초','기타':'교양선택'
 };
 function catLabel(cat){ return CAT_LABEL[cat]||cat; }
 
@@ -831,6 +1166,7 @@ function render(){
     else if(filt==='전선')mf=c.category==='전선';
     else if(filt==='교필')mf=c.category==='교필';
     else if(filt==='학기초')mf=c.category==='학기초';
+    else if(filt==='전기')mf=c.category==='전기';
     else if(filt==='교선')mf=c.category==='교선';
     else if(filt==='기타')mf=c.category==='기타';
 
@@ -970,6 +1306,7 @@ function render(){
       <option value="전선"${c.category==='전선'?' selected':''}>전공선택</option>
       <option value="교필"${c.category==='교필'?' selected':''}>공통교필</option>
       <option value="학기초"${c.category==='학기초'?' selected':''}>학문기초교필</option>
+      <option value="전기"${c.category==='전기'?' selected':''}>전공기초</option>
       <option value="교선"${c.category==='교선'?' selected':''}>균형교필</option>
       <option value="기타"${c.category==='기타'?' selected':''}>교양선택</option>
     </select>`;
