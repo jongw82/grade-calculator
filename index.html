@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>세종대 건축공학과 학점 계산기</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root {
   --bg:#f5f6fa; --surface:#fff; --surface2:#f0f2f8;
@@ -267,9 +268,48 @@ input[type=checkbox]{width:14px;height:14px;accent-color:var(--accent);cursor:po
 .sem-tab-row{background:var(--surface2);border-top:1px dashed var(--border);border-bottom:1px solid var(--border)}
 .sem-tab-row .ftab{font-size:11px;padding:3px 8px}
 .sem-tab-row .ftab.on{background:var(--text2);border-color:var(--text2)}
+
+/* ── LOGIN SCREEN ── */
+.login-screen{position:fixed;inset:0;background:var(--bg);z-index:500;display:flex;align-items:center;justify-content:center}
+.login-box{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:40px 36px;width:380px;max-width:92vw;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.10)}
+.login-logo{width:52px;height:52px;background:var(--accent);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:900;color:#fff;margin:0 auto 16px}
+.login-title{font-size:20px;font-weight:800;margin-bottom:6px;letter-spacing:-.3px}
+.login-sub{font-size:13px;color:var(--muted);margin-bottom:28px;line-height:1.6}
+.login-btn{width:100%;padding:12px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font);display:flex;align-items:center;justify-content:center;gap:10px;transition:all .15s;margin-bottom:10px}
+.login-btn:hover{border-color:var(--accent);background:var(--accent-light);color:var(--accent)}
+.login-input{width:100%;margin-top:6px;padding:10px 12px;border:1px solid var(--border);border-radius:9px;font-size:14px;font-family:var(--font);color:var(--text);background:var(--bg);outline:none;transition:border-color .2s}
+.login-input:focus{border-color:var(--accent);background:var(--surface)}
+.logout-btn{background:none;border:1px solid var(--border);border-radius:7px;padding:4px 10px;font-size:12px;color:var(--muted);cursor:pointer;font-family:var(--font);transition:all .15s}
+.logout-btn:hover{border-color:var(--red);color:var(--red)}
 </style>
 </head>
 <body>
+
+<!-- 로그인 화면 -->
+<div class="login-screen" id="loginScreen">
+  <div class="login-box">
+    <div class="login-logo">學</div>
+    <div class="login-title">세종대 건축공학과<br>학점 계산기</div>
+    <div class="login-sub" id="loginSub">학번과 비밀번호로 로그인하세요.<br>어느 기기에서도 데이터가 동기화돼요.</div>
+
+    <div id="loginMsg" style="font-size:12px;padding:8px 12px;border-radius:8px;margin-bottom:12px;display:none"></div>
+
+    <div style="text-align:left;margin-bottom:10px">
+      <label style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px">학번</label>
+      <input id="authId" class="login-input" type="text" placeholder="예: 22011234" maxlength="20">
+    </div>
+    <div style="text-align:left;margin-bottom:18px">
+      <label style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px">비밀번호</label>
+      <input id="authPw" class="login-input" type="password" placeholder="비밀번호 입력" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+
+    <button class="login-btn" id="loginBtn" onclick="doLogin()">로그인</button>
+    <div style="font-size:12px;color:var(--muted);margin:8px 0">처음 사용하시나요?</div>
+    <button class="login-btn" id="signupBtn" onclick="doSignup()" style="background:var(--accent-light);color:var(--accent);border-color:#c5d0fb">회원가입</button>
+
+    <div style="font-size:11px;color:var(--muted);margin-top:16px">Sejong University · Architectural Engineering</div>
+  </div>
+</div>
 
 <header class="header">
   <div class="hL">
@@ -280,6 +320,7 @@ input[type=checkbox]{width:14px;height:14px;accent-color:var(--accent);cursor:po
     <div class="utext"><div class="uname" id="hName">—</div><div class="umeta" id="hMeta">—</div></div>
     <div class="uavatar" id="hAv">?</div>
     <button class="icon-btn" onclick="openOnboard(true)">✏️</button>
+    <button class="logout-btn" onclick="logout()">로그아웃</button>
   </div>
 </header>
 
@@ -482,18 +523,106 @@ const PRESETS = {};
 
 // ── STATE ──
 let C=[],yr=2022,uname='',filt='전체',statusFilt='전체',semFilt='전체',sCol=null,sAsc=true;
-// popup target tracking
-let popGId=null, popSId=null, popSField=null, prevGId=null, prevGVal='-';
-// add modal sem state
-let aRecSem='', aTakeSem='', aSeaType='', aSeaYr='';
+let popGId=null,popSId=null,popSField=null,prevGId=null,prevGVal='-';
+let aRecSem_='',aTakeSem_='',aSeaType_='';
 
-// ── STORAGE ──
-const sv=()=>{localStorage.setItem('sj_c',JSON.stringify(C));localStorage.setItem('sj_y',yr);localStorage.setItem('sj_n',uname)};
-function ld(){
+// ── SUPABASE ──
+const SUPABASE_URL='https://oyphtlqxfaifwdoxtdxr.supabase.co';
+const SUPABASE_KEY='sb_publishable_6fsZAY8H0BAuf5uKzUZpdg_9_Uai_Fc';
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+let currentUser=null;
+
+// ── STORAGE (로컬 백업 + 클라우드 동기화) ──
+async function sv(){
+  // 로컬에도 저장 (오프라인 대비)
+  localStorage.setItem('sj_c',JSON.stringify(C));
+  localStorage.setItem('sj_y',yr);
+  localStorage.setItem('sj_n',uname);
+  // 로그인 상태면 클라우드에도 저장
+  if(!currentUser)return;
+  const payload={courses:C,yr,uname,updated_at:new Date().toISOString()};
+  await sb.from('courses').upsert({user_id:currentUser.id,data:payload},{onConflict:'user_id'});
+}
+
+async function loadCloud(){
+  if(!currentUser)return false;
+  const{data,error}=await sb.from('courses').select('data').eq('user_id',currentUser.id).single();
+  if(error||!data)return false;
+  const d=data.data;
+  if(d.courses)C=d.courses;
+  if(d.yr){yr=parseInt(d.yr);const _ay=document.getElementById('admYear');if(_ay)_ay.value=yr;}
+  if(d.uname)uname=d.uname;
+  return true;
+}
+
+function ldLocal(){
   const c=localStorage.getItem('sj_c'),y=localStorage.getItem('sj_y'),n=localStorage.getItem('sj_n');
   if(c)C=JSON.parse(c); if(y){yr=parseInt(y);const _ay=document.getElementById('admYear');if(_ay)_ay.value=y} if(n)uname=n;
 }
+
 function mkC(p,i){return{id:(Date.now()+i).toString(),grade:'-',prevGrade:'-',status:'미수강',retake:false,retakePlan:false,takeSem:'',planSem:'',dc:p.dc||0,prereqRec:p.prereqRec||'',...p};}
+
+// ── AUTH ──
+function showMsg(msg,isErr=true){
+  const el=document.getElementById('loginMsg');
+  el.textContent=msg;
+  el.style.display='block';
+  el.style.background=isErr?'var(--red-light)':'var(--green-light)';
+  el.style.color=isErr?'var(--red)':'var(--green)';
+  el.style.border=`1px solid ${isErr?'#fca5a5':'#86efac'}`;
+}
+
+// 학번을 이메일 형식으로 변환 (Supabase는 이메일 형식 필요)
+function toEmail(id){ return `${id.trim()}@sejong.ac.kr`; }
+
+async function doLogin(){
+  const id=document.getElementById('authId').value.trim();
+  const pw=document.getElementById('authPw').value;
+  if(!id||!pw){showMsg('학번과 비밀번호를 입력해주세요.');return;}
+  document.getElementById('loginBtn').textContent='로그인 중...';
+  const{data,error}=await sb.auth.signInWithPassword({email:toEmail(id),password:pw});
+  document.getElementById('loginBtn').textContent='로그인';
+  if(error){showMsg('학번 또는 비밀번호가 틀렸어요.');return;}
+  currentUser=data.user;
+  await afterLogin();
+}
+
+async function doSignup(){
+  const id=document.getElementById('authId').value.trim();
+  const pw=document.getElementById('authPw').value;
+  if(!id||!pw){showMsg('학번과 비밀번호를 입력해주세요.');return;}
+  if(pw.length<6){showMsg('비밀번호는 6자리 이상이어야 해요.');return;}
+  document.getElementById('signupBtn').textContent='가입 중...';
+  const{data,error}=await sb.auth.signUp({email:toEmail(id),password:pw});
+  document.getElementById('signupBtn').textContent='회원가입';
+  if(error){showMsg('이미 가입된 학번이에요. 로그인을 시도해보세요.');return;}
+  currentUser=data.user;
+  showMsg('가입 완료! 잠시 후 시작됩니다.', false);
+  setTimeout(async()=>{ await afterLogin(); },1000);
+}
+
+async function afterLogin(){
+  showApp();
+  const ok=await loadCloud();
+  if(!ok)ldLocal();
+  if(!uname)openOnboard(false);
+  else{updH();updStats();render();}
+}
+
+async function logout(){
+  await sb.auth.signOut();
+  currentUser=null;
+  C=[];yr=2022;uname='';
+  localStorage.clear();
+  document.getElementById('loginScreen').style.display='flex';
+  document.getElementById('authId').value='';
+  document.getElementById('authPw').value='';
+  document.getElementById('loginMsg').style.display='none';
+}
+
+function showApp(){
+  document.getElementById('loginScreen').style.display='none';
+}
 
 // ── ONBOARD ──
 function openOnboard(edit=false){
@@ -1202,9 +1331,19 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){document.getElementById('gradePopup').style.display='none';document.getElementById('semPopup').style.display='none';closeAddDirect();}});
 
 // ── INIT ──
-ld();
-if(!uname)openOnboard(false);
-else{updH();updStats();render();}
+(async()=>{
+  const{data:{session}}=await sb.auth.getSession();
+  if(session){
+    currentUser=session.user;
+    showApp();
+    const ok=await loadCloud();
+    if(!ok)ldLocal();
+    if(!uname)openOnboard(false);
+    else{updH();updStats();render();}
+  } else {
+    document.getElementById('loginScreen').style.display='flex';
+  }
+})();
 </script>
 </body>
 </html>
