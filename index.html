@@ -49,17 +49,6 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:1
 /* CREDIT CARDS */
 .csec{padding:14px 28px;background:var(--surface);border-bottom:1px solid var(--border)}
 .csec-title{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between}
-/* 예상성적 반영 토글 */
-.proj-toggle{display:inline-flex;align-items:center;gap:6px;padding:4px 10px 4px 6px;border-radius:999px;border:1px solid var(--border);background:var(--bg);color:var(--muted);font-size:11px;font-weight:600;cursor:pointer;font-family:var(--font);text-transform:none;letter-spacing:0;transition:all .15s}
-.proj-toggle:hover{border-color:var(--purple)}
-.proj-toggle.on{background:var(--purple-light);border-color:var(--purple);color:var(--purple)}
-.proj-dot{width:8px;height:8px;border-radius:50%;background:var(--border2);transition:all .15s}
-.proj-toggle.on .proj-dot{background:var(--purple);box-shadow:0 0 0 2px var(--purple-light)}
-/* 예상성적 표시 뱃지 */
-.proj-badge{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:700;color:var(--purple);background:var(--purple-light);border:1px solid #ddd6fe;border-radius:5px;padding:1px 5px;margin-left:5px;vertical-align:middle}
-/* 예상 성적 칩 (수강예정용) */
-.gc-exp{background:var(--purple-light);color:var(--purple);border-color:#ddd6fe;border-style:dashed}
-.gc-exp.gc-{background:var(--surface2);color:var(--muted);border-color:var(--border);border-style:dashed}
 .ytag{background:var(--accent);color:#fff;font-size:10px;padding:2px 8px;border-radius:999px;font-weight:700}
 .ccards{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
 .ccard{background:var(--bg);border:1.5px solid var(--border);border-radius:12px;padding:12px 14px;transition:all .25s}
@@ -337,8 +326,8 @@ input[type=checkbox]{width:14px;height:14px;accent-color:var(--accent);cursor:po
 </header>
 
 <div class="sbar">
-  <div class="scard"><div class="slabel">평균 학점 (GPA)</div><div class="sval gpa" id="sGPA">—</div><div class="ssub" id="sGPASub">4.5 만점</div></div>
-  <div class="scard"><div class="slabel">취득 학점</div><div class="sval earn" id="sEarn">0</div><div class="ssub" id="sEarnSub">수강완료 기준</div></div>
+  <div class="scard"><div class="slabel">평균 학점 (GPA)</div><div class="sval gpa" id="sGPA">—</div><div class="ssub">4.5 만점</div></div>
+  <div class="scard"><div class="slabel">취득 학점</div><div class="sval earn" id="sEarn">0</div><div class="ssub">수강완료 기준</div></div>
   <div class="scard"><div class="slabel">졸업까지 남은 학점</div><div class="sval rem" id="sRem">—</div><div class="ssub" id="sRemT">총 130학점 기준</div></div>
   <div class="scard"><div class="slabel">등록 과목 수</div><div class="sval" id="sCnt">0</div><div class="ssub" id="sCntS">—</div></div>
 </div>
@@ -350,15 +339,7 @@ input[type=checkbox]{width:14px;height:14px;accent-color:var(--accent);cursor:po
 </div>
 
 <div class="csec">
-  <div class="csec-title">
-    <span style="display:flex;align-items:center;gap:8px">
-      영역별 이수 현황
-      <button class="proj-toggle" id="projToggle" onclick="toggleProjected()" title="수강예정 과목의 예상성적을 반영해서 전체 평균/취득학점을 미리 계산해요">
-        <span class="proj-dot"></span>예상성적 반영
-      </button>
-    </span>
-    <span class="ytag" id="ytag">—</span>
-  </div>
+  <div class="csec-title"><span>영역별 이수 현황</span><span class="ytag" id="ytag">—</span></div>
   <div class="ccards" id="ccards"></div>
 </div>
 
@@ -871,7 +852,6 @@ const PRESETS = { 2022: PRESET_2022, 2023: PRESET_2023, 2024: PRESET_2024, 2025:
 
 // ── STATE ──
 let C=[],yr=2022,uname='',filt='전체',statusFilt='전체',semFilt='전체',sCol=null,sAsc=true;
-let showProjected=false;
 let popGId=null,popSId=null,popSField=null,prevGId=null,prevGVal='-';
 let aRecSem_='',aTakeSem_='',aSeaType_='';
 
@@ -893,10 +873,10 @@ async function sv(){
   await sb.from('courses').upsert({user_id:currentUser.id,data:payload},{onConflict:'user_id'});
 }
 
-// 구버전 데이터 마이그레이션 — 새로 추가된 필드(expGrade 등) 누락분 보정
+// 구버전 데이터 마이그레이션 — 누락된 필드 보정 (안전장치)
 function migrateCourses(){
   C = C.map(c => ({
-    grade:'-', prevGrade:'-', expGrade:'-',
+    grade:'-', prevGrade:'-',
     status:'미수강', retake:false, retakePlan:false,
     takeSem:'', planSem:'', dc:0, prereq:'', prereqRec:'',
     ...c
@@ -921,13 +901,7 @@ function ldLocal(){
   migrateCourses();
 }
 
-function mkC(p,i){return{id:(Date.now()+i).toString(),grade:'-',prevGrade:'-',expGrade:'-',status:'미수강',retake:false,retakePlan:false,takeSem:'',planSem:'',dc:p.dc||0,prereqRec:p.prereqRec||'',...p};}
-
-function toggleProjected(){
-  showProjected=!showProjected;
-  document.getElementById('projToggle').classList.toggle('on',showProjected);
-  updStats();
-}
+function mkC(p,i){return{id:(Date.now()+i).toString(),grade:'-',prevGrade:'-',status:'미수강',retake:false,retakePlan:false,takeSem:'',planSem:'',dc:p.dc||0,prereqRec:p.prereqRec||'',...p};}
 
 // ── AUTH ──
 function showMsg(msg,isErr=true){
@@ -1051,7 +1025,7 @@ function updStats(){
     }
   }
 
-  // 수강예정 학점 집계 (실제 취득 — 항상 계산)
+  // 수강예정 학점 집계
   let planEarn=0;
   for(const c of planned){
     if(!c.retake){
@@ -1060,34 +1034,9 @@ function updStats(){
     }
   }
 
-  // 예상성적(expGrade) 반영 — 수강예정 과목 중 예상성적이 입력된 것만 GPA에 가중 반영
-  let projGS=gs, projGC=gc, projEarn=earn;
-  let projCount=0;
-  for(const c of planned){
-    if(c.retake) continue;
-    projEarn += c.credits; // 예상성적 유무와 무관하게 수강예정 학점은 취득 예정으로 카운트
-    const egp = GMAP[c.expGrade];
-    if(egp!=null){
-      projGS += egp*c.credits;
-      projGC += c.credits;
-      projCount++;
-    }
-  }
-  const projGPA = projGC>0 ? (projGS/projGC).toFixed(2) : '—';
-
-  if(showProjected){
-    document.getElementById('sGPA').innerHTML = `${projGPA}`;
-    document.getElementById('sGPASub').innerHTML = `4.5 만점 <span class="proj-badge">예상 ${projCount}과목 반영</span>`;
-    document.getElementById('sEarn').textContent = projEarn;
-    document.getElementById('sEarnSub').innerHTML = `수강완료+예정 <span class="proj-badge">예상</span>`;
-    document.getElementById('sRem').textContent = Math.max(0,req.total-projEarn);
-  } else {
-    document.getElementById('sGPA').textContent=gc>0?(gs/gc).toFixed(2):'—';
-    document.getElementById('sGPASub').textContent='4.5 만점';
-    document.getElementById('sEarn').textContent=earn;
-    document.getElementById('sEarnSub').textContent='수강완료 기준';
-    document.getElementById('sRem').textContent=Math.max(0,req.total-earn);
-  }
+  document.getElementById('sGPA').textContent=gc>0?(gs/gc).toFixed(2):'—';
+  document.getElementById('sEarn').textContent=earn;
+  document.getElementById('sRem').textContent=Math.max(0,req.total-earn);
   document.getElementById('sRemT').textContent=`총 ${req.total}학점 기준`;
   document.getElementById('sCnt').textContent=C.length;
   document.getElementById('sCntS').textContent=`완료 ${done.length} · 수강중 ${doing.length} · 미수강 ${C.filter(c=>c.status==='미수강').length}`;
@@ -1312,13 +1261,6 @@ function render(){
         <span class="gchip ${gc}" onclick="openGradePop('${c.id}',this)" title="클릭해서 성적 변경">${c.grade}</span>
         ${showPrev?`<span class="prev-g" style="cursor:default" title="재수강 전 성적">전:${c.prevGrade}</span>`:''}
       </div>`;
-    } else if(isPlan){
-      // 수강예정 — 예상성적 선택 가능 (실제 성적과는 별개 필드)
-      const egc = gClass(c.expGrade);
-      gradeCell=`<div class="gcell">
-        <span class="gchip gc-exp ${egc}" onclick="openExpGradePop('${c.id}',this)" title="클릭해서 예상성적 입력">${c.expGrade}</span>
-        <span style="font-size:9px;color:var(--purple);font-weight:700">예상</span>
-      </div>`;
     } else {
       gradeCell=`<span class="gchip gc- disabled" title="수강완료 후 성적 입력 가능">—</span>`;
     }
@@ -1405,11 +1347,11 @@ function setStatus(id,status){
   c.status=status;
   if(status==='수강완료'){
     if(!c.takeSem && c.semester) c.takeSem=c.semester;
-    c.planSem='';c.expGrade='-';
+    c.planSem='';
   }
-  if(status==='수강중'){ c.planSem='';c.expGrade='-'; }
+  if(status==='수강중') c.planSem='';
   if(status==='수강예정'){ c.grade='-'; c.takeSem=''; }
-  if(status==='미수강'){ c.grade='-'; c.takeSem=''; c.planSem=''; c.expGrade='-'; }
+  if(status==='미수강'){ c.grade='-'; c.takeSem=''; c.planSem=''; }
   sv();updStats();render();
 }
 
@@ -1570,24 +1512,6 @@ function setGrade(id,g){
   document.getElementById('gradePopup').style.display='none';
 }
 
-// 수강예정 과목의 예상성적 선택 (실제 grade와 별개 필드 expGrade)
-function openExpGradePop(id,anchor){
-  popGId=id;
-  const c=C.find(x=>x.id===id);
-  const pop=document.getElementById('gradePopup');
-  pop.innerHTML=`<div style="width:100%;font-size:10px;font-weight:700;color:var(--purple);margin-bottom:4px">예상 성적 선택</div>` +
-    GRADES.map(g=>`<span class="gchip ${gClass(g)}${c.expGrade===g?' cur':''}" onclick="setExpGrade('${id}','${g}')">${g}</span>`).join('');
-  const r=anchor.getBoundingClientRect();
-  pop.style.top=(r.bottom+window.scrollY+4)+'px';
-  pop.style.left=Math.min(r.left+window.scrollX,window.innerWidth-210)+'px';
-  pop.style.display='flex';
-}
-function setExpGrade(id,g){
-  const c=C.find(x=>x.id===id);if(!c)return;
-  c.expGrade=g;sv();updStats();render();
-  document.getElementById('gradePopup').style.display='none';
-}
-
 // ── SEM POPUP ──
 function openSemPop(id,field,anchor){
   popSId=id;popSField=field;
@@ -1716,7 +1640,7 @@ function saveAdd(){
     prereq:document.getElementById('aPre').value.trim(),
     prereqRec:document.getElementById('aPreRec').value.trim(),
     semester:recSem,takeSem:takeSem,planSem:'',
-    grade:'-',prevGrade:'-',expGrade:'-',
+    grade:'-',prevGrade:'-',
     status:'수강완료',   // 기본값: 수강완료
     retake:false,retakePlan:false,
   };
