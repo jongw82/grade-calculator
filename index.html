@@ -91,7 +91,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:1
 
 /* 시간표 그리드 */
 .tt-grid-wrap{overflow-x:auto;margin-bottom:20px;border:1px solid var(--border);border-radius:12px}
-.tt-grid{display:grid;grid-template-columns:52px repeat(6,1fr);min-width:680px;position:relative}
+.tt-grid{display:grid;grid-template-columns:52px repeat(5,1fr);min-width:600px;position:relative}
 .tt-corner{background:var(--surface2);border-bottom:1px solid var(--border);border-right:1px solid var(--border)}
 .tt-day-head{background:var(--surface2);padding:8px 4px;text-align:center;font-size:12px;font-weight:700;color:var(--text2);border-bottom:1px solid var(--border);border-right:1px solid var(--border)}
 .tt-day-head:last-child{border-right:none}
@@ -644,6 +644,7 @@ input[type=checkbox]{width:14px;height:14px;accent-color:var(--accent);cursor:po
         <button class="tt-close" onclick="closeTimetable()">×</button>
       </div>
     </div>
+    <div id="ttSemCredits" style="font-size:12px;color:var(--text2);font-weight:600;margin-bottom:10px"></div>
     <div class="tt-conflict-warn" id="ttConflictWarn"></div>
     <div class="tt-grid-wrap">
       <div class="tt-grid" id="ttGrid"></div>
@@ -1323,13 +1324,17 @@ function updStats(){
   const useGC = showProjected ? catProjGC : catGC;
   const majGS=(useGS['전필']||0)+(useGS['전선']||0);
   const majGC=(useGC['전필']||0)+(useGC['전선']||0);
+  // 교양선택(기타)은 고정 필요학점이 없어 전체 130학점에서 나머지 영역을 뺀 값으로 계산
+  const etcMin = Math.max(0, req.total - (req.공통 + req.균형 + req.학기초 + (req.전기||0) + req.전필 + req.전선));
+
   const catDefs=[
     {key:'전공',label:'전공 전체',gs:majGS,gc:majGC,color:'var(--accent)'},
     {key:'전필',label:'전공필수',gs:useGS['전필']||0,gc:useGC['전필']||0,color:'var(--accent)'},
     {key:'전선',label:'전공선택',gs:useGS['전선']||0,gc:useGC['전선']||0,color:'var(--purple)'},
-    {key:'교필',label:'공통교필',gs:useGS['교필']||0,gc:useGC['교필']||0,color:'var(--yellow)'},
-    {key:'학기초',label:'학문기초교필',gs:useGS['학기초']||0,gc:useGC['학기초']||0,color:'var(--orange)'},
-    {key:'교선',label:'균형교필',gs:useGS['교선']||0,gc:useGC['교선']||0,color:'var(--green)'},
+    {key:'교필',label:'공통교양필수',gs:useGS['교필']||0,gc:useGC['교필']||0,color:'var(--yellow)'},
+    {key:'학기초',label:'학문기초교양필수',gs:useGS['학기초']||0,gc:useGC['학기초']||0,color:'var(--orange)'},
+    {key:'교선',label:'균형교양필수',gs:useGS['교선']||0,gc:useGC['교선']||0,color:'var(--green)'},
+    {key:'기타',label:'교양선택',gs:useGS['기타']||0,gc:useGC['기타']||0,color:'var(--gray)'},
     ...(req.전기!=null?[{key:'전기',label:'전공기초',gs:useGS['전기']||0,gc:useGC['전기']||0,color:'var(--blue)'}]:[]),
   ];
   document.getElementById('catGPA').innerHTML=catDefs.map(d=>{
@@ -1346,8 +1351,9 @@ function updStats(){
     {l:'전공필수',  e:cat['전필']||0,  p:catPlan['전필']||0,  n:req.전필,   ci:'c0'},
     {l:'전공선택',  e:cat['전선']||0,  p:catPlan['전선']||0,  n:req.전선,   ci:'c1'},
     {l:'공통교양필수',e:cat['교필']||0,p:catPlan['교필']||0,  n:req.공통,   ci:'c2'},
-    {l:'균형교양필수',e:cat['교선']||0,p:catPlan['교선']||0,  n:req.균형,   ci:'c1'},
     {l:'학문기초교양필수',e:cat['학기초']||0,p:catPlan['학기초']||0,n:req.학기초,ci:'c3'},
+    {l:'균형교양필수',e:cat['교선']||0,p:catPlan['교선']||0,  n:req.균형,   ci:'c1'},
+    {l:'교양선택',e:cat['기타']||0,p:catPlan['기타']||0,      n:etcMin,     ci:'c1'},
     ...(req.전기!=null?[{l:'전공기초',e:cat['전기']||0,p:catPlan['전기']||0,n:req.전기,ci:'c3'}]:[]),
     {l:'총 취득 학점',e:earn,          p:planEarn,             n:req.total,  ci:'c4'},
   ];
@@ -2356,7 +2362,7 @@ function closeAbeek(){ document.getElementById('abOverlay').classList.remove('op
 function closeAbeekOut(e){ if(e.target===document.getElementById('abOverlay')) closeAbeek(); }
 
 // ── 시간표 ──
-const TT_DAYS=['월','화','수','목','금','토'];
+const TT_DAYS=['월','화','수','목','금'];
 const TT_START_HOUR=7, TT_END_HOUR=22; // 07:00~22:00 표시
 let ttEditingId=null; // 현재 시간 등록 폼이 열려있는 과목 id
 let ttFormDays=new Set(); // 폼에서 선택 중인 요일들
@@ -2433,6 +2439,12 @@ function renderTimetable(){
   if(ttSem==='__NONE__') planned=planned.filter(c=>!c.planSem);
   else if(ttSem) planned=planned.filter(c=>c.planSem===ttSem);
 
+  // ── 선택된 학기 총 학점 표시 ──
+  const semTotalCredits = planned.reduce((s,c)=>s+(c.credits||0),0);
+  const semLabelForCredits = ttSem==='__NONE__' ? '학기 미지정' : (ttSem||'—');
+  document.getElementById('ttSemCredits').textContent =
+    planned.length>0 ? `${semLabelForCredits} · 총 ${semTotalCredits}학점 (${planned.length}과목)` : '';
+
   // ── 그리드 헤더 ──
   const totalHours=TT_END_HOUR-TT_START_HOUR;
   let gridHtml=`<div class="tt-corner"></div>`;
@@ -2456,7 +2468,7 @@ function renderTimetable(){
   // ── 블록 절대배치 (그리드 위에 오버레이) ──
   const conflicts=findConflicts(planned);
   const gridEl=document.getElementById('ttGrid');
-  const dayColWidth=`calc((100% - 52px) / 6)`;
+  const dayColWidth=`calc((100% - 52px) / 5)`;
   const onlineRowTop = 28 + totalHours*32; // 온라인 행 시작 y좌표
   let blocksHtml='';
   // 온라인 슬롯은 같은 요일 칸에 여러 과목이 겹칠 수 있어 인덱스별로 살짝 겹쳐 표시
