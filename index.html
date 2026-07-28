@@ -1299,7 +1299,7 @@ function updStats(){
       projCount++;
     }
   }
-  const projGPA = projGC>0 ? (projGS/projGC).toFixed(2) : '—';
+  const projGPA = projGC>0 ? (projGS/projGC).toFixed(4) : '—';
 
   if(showProjected){
     setText('sGPA', projGPA);
@@ -1308,7 +1308,7 @@ function updStats(){
     setHTML('sEarnSub', `수강완료+예정 <span class="proj-badge">예상</span>`);
     setText('sRem', Math.max(0,req.total-projEarn));
   } else {
-    setText('sGPA', gc>0?(gs/gc).toFixed(2):'—');
+    setText('sGPA', gc>0?(gs/gc).toFixed(4):'—');
     setText('sGPASub', '4.5 만점');
     setText('sEarn', earn);
     setText('sEarnSub', '수강완료 기준');
