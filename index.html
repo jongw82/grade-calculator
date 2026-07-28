@@ -35,6 +35,56 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:1
 .uname{font-size:13px;font-weight:700}
 .umeta{font-size:11px;color:var(--muted);margin-top:1px}
 .icon-btn{background:none;border:none;cursor:pointer;color:var(--muted);padding:4px 7px;border-radius:6px;font-size:13px;transition:all .15s;font-family:var(--font)}
+.timetable-btn{background:var(--accent-light);color:var(--accent);border:1px solid #c5d0fb;padding:6px 12px;border-radius:8px;font-weight:600;font-size:12px}
+.timetable-btn:hover{background:var(--accent);color:#fff}
+
+/* ── 시간표 모달 ── */
+.tt-overlay{position:fixed;inset:0;background:rgba(15,20,50,.4);backdrop-filter:blur(2px);z-index:400;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
+.tt-overlay.open{opacity:1;pointer-events:all}
+.tt-modal{background:var(--surface);border-radius:18px;padding:24px;width:min(960px,95vw);max-height:92vh;overflow-y:auto;box-shadow:0 12px 40px rgba(0,0,0,.2);transform:translateY(8px);transition:transform .2s}
+.tt-overlay.open .tt-modal{transform:translateY(0)}
+.tt-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.tt-title{font-size:17px;font-weight:800}
+.tt-close{background:none;border:none;color:var(--muted);cursor:pointer;font-size:22px;line-height:1}
+.tt-close:hover{color:var(--text)}
+
+/* 시간표 그리드 */
+.tt-grid-wrap{overflow-x:auto;margin-bottom:20px;border:1px solid var(--border);border-radius:12px}
+.tt-grid{display:grid;grid-template-columns:52px repeat(6,1fr);min-width:680px;position:relative}
+.tt-corner{background:var(--surface2);border-bottom:1px solid var(--border);border-right:1px solid var(--border)}
+.tt-day-head{background:var(--surface2);padding:8px 4px;text-align:center;font-size:12px;font-weight:700;color:var(--text2);border-bottom:1px solid var(--border);border-right:1px solid var(--border)}
+.tt-day-head:last-child{border-right:none}
+.tt-hour-label{font-size:10px;color:var(--muted);text-align:right;padding:2px 6px 0 0;border-right:1px solid var(--border);border-top:1px solid var(--border)}
+.tt-cell{border-top:1px solid var(--border);border-right:1px solid var(--border);height:32px;position:relative}
+.tt-cell:last-child{border-right:none}
+.tt-block{position:absolute;left:2px;right:2px;border-radius:6px;padding:3px 5px;font-size:10px;font-weight:700;color:#fff;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.15);cursor:default;line-height:1.3;z-index:2}
+.tt-block .tt-block-time{font-size:9px;font-weight:500;opacity:.85}
+.tt-block.conflict{outline:2px solid var(--red);outline-offset:-2px}
+
+/* 팔레트 색상 (과목별 순환) */
+.tt-c0{background:#4a6cf7}.tt-c1{background:#7c3aed}.tt-c2{background:#16a34a}
+.tt-c3{background:#ea580c}.tt-c4{background:#0ea5e9}.tt-c5{background:#dc2626}
+.tt-c6{background:#ca8a04}.tt-c7{background:#db2777}
+
+/* 과목 목록 + 시간 등록 */
+.tt-course-list{display:flex;flex-direction:column;gap:8px}
+.tt-course-row{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--border);border-radius:10px;background:var(--bg)}
+.tt-course-name{font-size:13px;font-weight:700;min-width:110px}
+.tt-course-swatch{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+.tt-slot-tag{display:inline-flex;align-items:center;gap:4px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:3px 7px;font-size:11px;color:var(--text2)}
+.tt-slot-tag button{background:none;border:none;color:var(--muted);cursor:pointer;font-size:11px;padding:0;margin-left:2px}
+.tt-slot-tag button:hover{color:var(--red)}
+.tt-add-slot-btn{background:var(--accent-light);color:var(--accent);border:1px dashed #c5d0fb;border-radius:6px;padding:3px 9px;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--font)}
+.tt-add-slot-btn:hover{background:var(--accent);color:#fff;border-style:solid}
+.tt-empty{text-align:center;padding:32px;color:var(--muted);font-size:13px}
+
+/* 시간 입력 미니 폼 */
+.tt-time-form{display:flex;align-items:center;gap:6px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px;margin-top:6px}
+.tt-day-select{display:flex;gap:3px}
+.tt-day-btn{width:28px;height:26px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font)}
+.tt-day-btn.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.tt-time-input{width:78px;padding:5px 6px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:var(--font);background:var(--surface);color:var(--text);cursor:pointer}
+.tt-conflict-warn{background:var(--red-light);color:var(--red);border:1px solid #fca5a5;border-radius:8px;padding:8px 12px;font-size:12px;margin-bottom:14px;display:none}
 .icon-btn:hover{background:var(--surface2);color:var(--text2)}
 
 /* SUMMARY */
@@ -346,6 +396,7 @@ input[type=checkbox]{width:14px;height:14px;accent-color:var(--accent);cursor:po
     <div><div class="h-title">세종대 건축공학과 학점 계산기</div><div class="h-sub">Sejong University · Architectural Engineering</div></div>
   </div>
   <div class="uchip">
+    <button class="icon-btn timetable-btn" onclick="openTimetable()" title="수강예정 과목 시간표 보기">🗓️ 시간표</button>
     <div class="utext"><div class="uname" id="hName">—</div><div class="umeta" id="hMeta">—</div></div>
     <div class="uavatar" id="hAv">?</div>
     <button class="icon-btn" onclick="openOnboard(true)">✏️</button>
@@ -520,7 +571,23 @@ input[type=checkbox]{width:14px;height:14px;accent-color:var(--accent);cursor:po
  </div>
 </div>
 
+<!-- 시간표 모달 -->
+<div class="tt-overlay" id="ttOverlay" onclick="closeTimetableOut(event)">
+  <div class="tt-modal">
+    <div class="tt-hdr">
+      <div class="tt-title">🗓️ 수강예정 시간표</div>
+      <button class="tt-close" onclick="closeTimetable()">×</button>
+    </div>
+    <div class="tt-conflict-warn" id="ttConflictWarn"></div>
+    <div class="tt-grid-wrap">
+      <div class="tt-grid" id="ttGrid"></div>
+    </div>
+    <div class="tt-course-list" id="ttCourseList"></div>
+  </div>
+</div>
+
 <!-- 가입/정보수정 모달 -->
+
 <div class="overlay" id="obOv">
  <div class="modal ob-modal">
   <div class="ob-title" id="obTit">👋 처음 오셨군요!</div>
@@ -940,7 +1007,7 @@ function migrateCourses(){
   C = C.map(c => ({
     grade:'-', prevGrade:'-', expGrade:'-',
     status:'미수강', retake:false, retakePlan:false, retakePlanOf:null,
-    takeSem:'', planSem:'', dc:0, prereq:'', prereqRec:'',
+    takeSem:'', planSem:'', dc:0, prereq:'', prereqRec:'', ttSlots:[],
     ...c
   }));
 }
@@ -963,7 +1030,7 @@ function ldLocal(){
   migrateCourses();
 }
 
-function mkC(p,i){return{id:(Date.now()+i).toString(),grade:'-',prevGrade:'-',expGrade:'-',status:'미수강',retake:false,retakePlan:false,retakePlanOf:null,takeSem:'',planSem:'',dc:p.dc||0,prereqRec:p.prereqRec||'',...p};}
+function mkC(p,i){return{id:(Date.now()+i).toString(),grade:'-',prevGrade:'-',expGrade:'-',status:'미수강',retake:false,retakePlan:false,retakePlanOf:null,takeSem:'',planSem:'',dc:p.dc||0,prereqRec:p.prereqRec||'',ttSlots:[],...p};}
 
 function toggleProjected(){
   showProjected=!showProjected;
@@ -1886,7 +1953,7 @@ function saveAdd(){
     semester:recSem,takeSem:takeSem,planSem:'',
     grade:'-',prevGrade:'-',expGrade:'-',
     status:'수강완료',   // 기본값: 수강완료
-    retake:false,retakePlan:false,retakePlanOf:null,
+    retake:false,retakePlan:false,retakePlanOf:null,ttSlots:[],
   };
   C.push(c);sv();updStats();render();closeAddDirect();
 }
@@ -1984,6 +2051,177 @@ function bulkSetGrade(g){
 
 function clearAll(){C=[];selectedIds.clear();sv();updStats();render();}
 
+// ── 시간표 ──
+const TT_DAYS=['월','화','수','목','금','토'];
+const TT_START_HOUR=7, TT_END_HOUR=22; // 07:00~22:00 표시
+let ttEditingId=null; // 현재 시간 등록 폼이 열려있는 과목 id
+let ttFormDays=new Set(); // 폼에서 선택 중인 요일들
+
+function openTimetable(){
+  document.getElementById('ttOverlay').classList.add('open');
+  renderTimetable();
+}
+function closeTimetable(){ document.getElementById('ttOverlay').classList.remove('open'); ttEditingId=null; }
+function closeTimetableOut(e){ if(e.target===document.getElementById('ttOverlay')) closeTimetable(); }
+
+function timeToMin(t){ // "09:30" -> 570
+  const [h,m]=(t||'00:00').split(':').map(Number);
+  return h*60+(m||0);
+}
+function ttColorClass(idx){ return `tt-c${idx%8}`; }
+
+// 시간 겹침 체크: 같은 요일에서 슬롯 구간이 겹치는지
+function findConflicts(courses){
+  const items=[]; // {courseId, day, start, end}
+  courses.forEach(c=>{
+    (c.ttSlots||[]).forEach(s=>{
+      items.push({courseId:c.id, name:c.name, day:s.day, start:timeToMin(s.start), end:timeToMin(s.end)});
+    });
+  });
+  const conflicts=new Set(); // "day|start|end" 형태로 충돌난 슬롯 표시용, 여기선 courseId+day+start 키 사용
+  for(let i=0;i<items.length;i++){
+    for(let j=i+1;j<items.length;j++){
+      const a=items[i], b=items[j];
+      if(a.courseId===b.courseId) continue; // 같은 과목 내 중복은 무시
+      if(a.day!==b.day) continue;
+      if(a.start<b.end && b.start<a.end){
+        conflicts.add(`${a.courseId}|${a.day}|${a.start}`);
+        conflicts.add(`${b.courseId}|${b.day}|${b.start}`);
+      }
+    }
+  }
+  return conflicts;
+}
+
+function renderTimetable(){
+  const planned=C.filter(c=>c.status==='수강예정');
+
+  // ── 그리드 헤더 ──
+  const totalHours=TT_END_HOUR-TT_START_HOUR;
+  let gridHtml=`<div class="tt-corner"></div>`;
+  TT_DAYS.forEach(d=>{ gridHtml+=`<div class="tt-day-head">${d}</div>`; });
+
+  // 시간 라벨 + 빈 셀 (배경 그리드)
+  for(let h=TT_START_HOUR;h<TT_END_HOUR;h++){
+    gridHtml+=`<div class="tt-hour-label">${h}</div>`;
+    for(let d=0;d<TT_DAYS.length;d++){
+      gridHtml+=`<div class="tt-cell"></div>`;
+    }
+  }
+  document.getElementById('ttGrid').innerHTML=gridHtml;
+  document.getElementById('ttGrid').style.gridTemplateRows=`28px repeat(${totalHours},32px)`;
+
+  // ── 블록 절대배치 (그리드 위에 오버레이) ──
+  const conflicts=findConflicts(planned);
+  const gridEl=document.getElementById('ttGrid');
+  const dayColWidth=`calc((100% - 52px) / 6)`;
+  let blocksHtml='';
+  planned.forEach((c,idx)=>{
+    (c.ttSlots||[]).forEach(s=>{
+      const dayIdx=TT_DAYS.indexOf(s.day);
+      if(dayIdx<0) return;
+      const startMin=timeToMin(s.start), endMin=timeToMin(s.end);
+      if(endMin<=startMin) return;
+      const top = 28 + ((startMin - TT_START_HOUR*60)/60)*32;
+      const height = ((endMin-startMin)/60)*32;
+      const isConflict = conflicts.has(`${c.id}|${s.day}|${startMin}`);
+      blocksHtml+=`<div class="tt-block ${ttColorClass(idx)}${isConflict?' conflict':''}"
+        style="top:${top}px;height:${Math.max(height,18)}px;left:calc(52px + ${dayIdx} * ${dayColWidth} + 2px);width:calc(${dayColWidth} - 4px)"
+        title="${c.name} ${s.start}~${s.end}${isConflict?' (시간 겹침!)':''}">
+        ${c.name}<div class="tt-block-time">${s.start}~${s.end}</div>
+      </div>`;
+    });
+  });
+  gridEl.insertAdjacentHTML('beforeend', `<div style="position:absolute;inset:0;pointer-events:none">${blocksHtml}</div>`);
+  gridEl.style.position='relative';
+
+  // ── 충돌 경고 배너 ──
+  const warnEl=document.getElementById('ttConflictWarn');
+  if(conflicts.size>0){
+    warnEl.style.display='block';
+    warnEl.textContent=`⚠️ 시간이 겹치는 과목이 있어요. 빨간 테두리로 표시된 블록을 확인해주세요.`;
+  } else {
+    warnEl.style.display='none';
+  }
+
+  // ── 과목별 시간 등록 목록 ──
+  const listEl=document.getElementById('ttCourseList');
+  if(planned.length===0){
+    listEl.innerHTML=`<div class="tt-empty">수강예정으로 표시된 과목이 없어요.<br>테이블에서 과목 상태를 '수강예정'으로 바꾸면 여기에 나타나요.</div>`;
+    return;
+  }
+  listEl.innerHTML=planned.map((c,idx)=>{
+    const slotsHtml=(c.ttSlots||[]).map((s,si)=>
+      `<span class="tt-slot-tag">${s.day} ${s.start}~${s.end}<button onclick="removeTtSlot('${c.id}',${si})" title="삭제">✕</button></span>`
+    ).join('');
+    const formHtml = ttEditingId===c.id ? renderTtForm(c.id) : '';
+    return `<div class="tt-course-row" style="flex-wrap:wrap">
+      <span class="tt-course-swatch ${ttColorClass(idx)}"></span>
+      <span class="tt-course-name">${c.name}</span>
+      ${slotsHtml}
+      <button class="tt-add-slot-btn" onclick="toggleTtForm('${c.id}')">${ttEditingId===c.id?'닫기':'+ 시간 추가'}</button>
+      ${formHtml}
+    </div>`;
+  }).join('');
+}
+
+function toggleTtForm(id){
+  ttEditingId = ttEditingId===id ? null : id;
+  ttFormDays = new Set();
+  renderTimetable();
+}
+
+// 07:00 ~ 22:00, 30분 단위 시간 옵션 생성
+function ttTimeOptions(selected){
+  let opts='';
+  for(let h=TT_START_HOUR; h<=TT_END_HOUR; h++){
+    for(const m of ['00','30']){
+      if(h===TT_END_HOUR && m==='30') continue; // 22:30은 범위 밖이라 제외
+      const t=`${String(h).padStart(2,'0')}:${m}`;
+      opts+=`<option value="${t}"${t===selected?' selected':''}>${t}</option>`;
+    }
+  }
+  return opts;
+}
+
+function renderTtForm(id){
+  const dayBtns = TT_DAYS.map(d=>`<button type="button" class="tt-day-btn${ttFormDays.has(d)?' on':''}" onclick="toggleTtFormDay('${d}',this)">${d}</button>`).join('');
+  return `<div class="tt-time-form" style="width:100%">
+    <div class="tt-day-select">${dayBtns}</div>
+    <select class="tt-time-input" id="ttStart-${id}">${ttTimeOptions('09:00')}</select>
+    <span style="font-size:11px;color:var(--muted)">~</span>
+    <select class="tt-time-input" id="ttEnd-${id}">${ttTimeOptions('10:30')}</select>
+    <button class="btn btn-p" style="padding:5px 12px;font-size:12px" onclick="addTtSlot('${id}')">추가</button>
+  </div>`;
+}
+
+function toggleTtFormDay(day, btn){
+  if(ttFormDays.has(day)) ttFormDays.delete(day); else ttFormDays.add(day);
+  btn.classList.toggle('on');
+}
+
+function addTtSlot(id){
+  if(ttFormDays.size===0){ alert('요일을 하나 이상 선택해주세요.'); return; }
+  const start=document.getElementById(`ttStart-${id}`).value;
+  const end=document.getElementById(`ttEnd-${id}`).value;
+  if(!start || !end){ alert('시작/종료 시간을 입력해주세요.'); return; }
+  if(timeToMin(end)<=timeToMin(start)){ alert('종료 시간이 시작 시간보다 늦어야 해요.'); return; }
+  const c=C.find(x=>x.id===id); if(!c) return;
+  if(!c.ttSlots) c.ttSlots=[];
+  ttFormDays.forEach(day=>{ c.ttSlots.push({day, start, end}); });
+  ttFormDays=new Set();
+  ttEditingId=null;
+  sv();
+  renderTimetable();
+}
+
+function removeTtSlot(id, idx){
+  const c=C.find(x=>x.id===id); if(!c) return;
+  c.ttSlots.splice(idx,1);
+  sv();
+  renderTimetable();
+}
+
 // ── IMPORT / EXPORT ──
 function exportData(){
   const b=new Blob([JSON.stringify({courses:C,yr,uname,at:new Date().toISOString()},null,2)],{type:'application/json'});
@@ -2004,7 +2242,7 @@ document.addEventListener('click',e=>{
   if(sp.style.display==='block'&&!sp.contains(e.target)&&!e.target.closest('[onclick*="openSemPop"]'))sp.style.display='none';
 },{capture:true});
 
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){document.getElementById('gradePopup').style.display='none';document.getElementById('semPopup').style.display='none';closeAddDirect();}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){document.getElementById('gradePopup').style.display='none';document.getElementById('semPopup').style.display='none';closeAddDirect();closeTimetable();}});
 
 // ── INIT ──
 (async()=>{
