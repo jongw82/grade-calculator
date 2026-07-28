@@ -1334,7 +1334,7 @@ function updStats(){
     {key:'교필',label:'공통교양필수',gs:useGS['교필']||0,gc:useGC['교필']||0,color:'var(--yellow)'},
     {key:'학기초',label:'학문기초교양필수',gs:useGS['학기초']||0,gc:useGC['학기초']||0,color:'var(--orange)'},
     {key:'교선',label:'균형교양필수',gs:useGS['교선']||0,gc:useGC['교선']||0,color:'var(--green)'},
-    {key:'기타',label:'교양선택',gs:useGS['기타']||0,gc:useGC['기타']||0,color:'var(--gray)'},
+    {key:'기타',label:'교양선택',gs:useGS['기타']||0,gc:useGC['기타']||0,color:'var(--purple)'},
     ...(req.전기!=null?[{key:'전기',label:'전공기초',gs:useGS['전기']||0,gc:useGC['전기']||0,color:'var(--blue)'}]:[]),
   ];
   document.getElementById('catGPA').innerHTML=catDefs.map(d=>{
