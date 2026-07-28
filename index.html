@@ -36,6 +36,47 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:1
 .umeta{font-size:11px;color:var(--muted);margin-top:1px}
 .icon-btn{background:none;border:none;cursor:pointer;color:var(--muted);padding:4px 7px;border-radius:6px;font-size:13px;transition:all .15s;font-family:var(--font)}
 .timetable-btn{background:var(--accent-light);color:var(--accent);border:1px solid #c5d0fb;padding:6px 12px;border-radius:8px;font-weight:600;font-size:12px}
+.abeek-btn{background:var(--purple-light);color:var(--purple);border-color:#ddd6fe}
+.abeek-btn:hover{background:var(--purple);color:#fff}
+
+/* ── 공학인증 체크 모달 ── */
+.ab-overlay{position:fixed;inset:0;background:rgba(15,20,50,.4);backdrop-filter:blur(2px);z-index:410;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
+.ab-overlay.open{opacity:1;pointer-events:all}
+.ab-modal{background:var(--surface);border-radius:18px;padding:24px;width:min(680px,94vw);max-height:90vh;overflow-y:auto;box-shadow:0 12px 40px rgba(0,0,0,.2);transform:translateY(8px);transition:transform .2s}
+.ab-overlay.open .ab-modal{transform:translateY(0)}
+.ab-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.ab-title{font-size:17px;font-weight:800}
+.ab-close{background:none;border:none;color:var(--muted);cursor:pointer;font-size:22px;line-height:1}
+.ab-close:hover{color:var(--text)}
+.ab-sub{font-size:11px;color:var(--muted);margin-bottom:16px}
+
+.ab-summary{display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:12px;margin-bottom:16px}
+.ab-summary.ok{background:var(--green-light);border:1px solid #86efac}
+.ab-summary.no{background:var(--red-light);border:1px solid #fca5a5}
+.ab-summary-icon{font-size:26px}
+.ab-summary-text{font-size:14px;font-weight:800}
+.ab-summary-sub{font-size:12px;color:var(--text2);margin-top:2px;font-weight:500}
+
+.ab-section{border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:10px}
+.ab-section-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.ab-section-title{font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px}
+.ab-status-pill{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px}
+.ab-status-pill.ok{background:var(--green-light);color:var(--green)}
+.ab-status-pill.no{background:var(--red-light);color:var(--red)}
+.ab-progress{font-size:12px;color:var(--text2);margin-bottom:8px}
+.ab-bar{height:6px;background:var(--border);border-radius:999px;overflow:hidden;margin-bottom:10px}
+.ab-bar-fill{height:100%;border-radius:999px;background:var(--purple);transition:width .3s}
+.ab-bar-fill.ok{background:var(--green)}
+.ab-detail-list{display:flex;flex-direction:column;gap:4px}
+.ab-item{display:flex;align-items:center;gap:6px;font-size:12px;padding:3px 0}
+.ab-item .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.ab-item.ok .dot{background:var(--green)}
+.ab-item.no .dot{background:var(--gray)}
+.ab-item.warn .dot{background:var(--yellow)}
+.ab-item .name{flex:1;color:var(--text2)}
+.ab-item.ok .name{color:var(--text)}
+.ab-item .tag{font-size:10px;color:var(--muted)}
+.ab-note{font-size:11px;color:var(--muted);margin-top:6px;line-height:1.5;background:var(--bg);border-radius:8px;padding:8px 10px}
 .timetable-btn:hover{background:var(--accent);color:#fff}
 
 /* ── 시간표 모달 ── */
@@ -56,6 +97,11 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:1
 .tt-day-head:last-child{border-right:none}
 .tt-hour-label{font-size:10px;color:var(--muted);text-align:right;padding:2px 6px 0 0;border-right:1px solid var(--border);border-top:1px solid var(--border)}
 .tt-cell{border-top:1px solid var(--border);border-right:1px solid var(--border);height:32px;position:relative}
+.tt-online-row{background:var(--surface2)}
+.tt-online-label{background:var(--surface2);border-top:1.5px solid var(--border2);border-right:1px solid var(--border);font-size:10px;color:var(--accent);text-align:right;padding:5px 6px 0 0;font-weight:700}
+.tt-online-cell{border-top:1.5px solid var(--border2);border-right:1px solid var(--border);height:36px;position:relative;background:var(--surface2)}
+.tt-online-cell:last-child{border-right:none}
+.tt-block.online{background:var(--gray)}
 .tt-cell:last-child{border-right:none}
 .tt-block{position:absolute;left:2px;right:2px;border-radius:6px;padding:3px 5px;font-size:10px;font-weight:700;color:#fff;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.15);cursor:default;line-height:1.3;z-index:2}
 .tt-block .tt-block-time{font-size:9px;font-weight:500;opacity:.85}
@@ -396,6 +442,7 @@ input[type=checkbox]{width:14px;height:14px;accent-color:var(--accent);cursor:po
     <div><div class="h-title">세종대 건축공학과 학점 계산기</div><div class="h-sub">Sejong University · Architectural Engineering</div></div>
   </div>
   <div class="uchip">
+    <button class="icon-btn timetable-btn abeek-btn" onclick="openAbeek()" title="공학인증(ABEEK) 요건 충족 여부 확인">🎓 공학인증</button>
     <button class="icon-btn timetable-btn" onclick="openTimetable()" title="수강예정 과목 시간표 보기">🗓️ 시간표</button>
     <div class="utext"><div class="uname" id="hName">—</div><div class="umeta" id="hMeta">—</div></div>
     <div class="uavatar" id="hAv">?</div>
@@ -571,12 +618,31 @@ input[type=checkbox]{width:14px;height:14px;accent-color:var(--accent);cursor:po
  </div>
 </div>
 
+<!-- 공학인증 체크 모달 -->
+<div class="ab-overlay" id="abOverlay" onclick="closeAbeekOut(event)">
+  <div class="ab-modal">
+    <div class="ab-hdr">
+      <div class="ab-title">🎓 공학인증(ABEEK) 요건 체크</div>
+      <button class="ab-close" onclick="closeAbeek()">×</button>
+    </div>
+    <div class="ab-sub">실제 수강완료(합격) 과목 기준으로 계산돼요. 예상성적은 반영되지 않아요.</div>
+    <div id="abContent"></div>
+  </div>
+</div>
+
 <!-- 시간표 모달 -->
+
 <div class="tt-overlay" id="ttOverlay" onclick="closeTimetableOut(event)">
   <div class="tt-modal">
     <div class="tt-hdr">
       <div class="tt-title">🗓️ 수강예정 시간표</div>
-      <button class="tt-close" onclick="closeTimetable()">×</button>
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="yr-wrap">
+          <label>예정학기</label>
+          <select id="ttSemSelect" onchange="setTtSem(this.value)"></select>
+        </div>
+        <button class="tt-close" onclick="closeTimetable()">×</button>
+      </div>
     </div>
     <div class="tt-conflict-warn" id="ttConflictWarn"></div>
     <div class="tt-grid-wrap">
@@ -2051,18 +2117,286 @@ function bulkSetGrade(g){
 
 function clearAll(){C=[];selectedIds.clear();sv();updStats();render();}
 
+// ── 공학인증(ABEEK) 요건 ──
+const ABEEK_REQS = {
+  2022: {
+    liberalRequired: ['문제해결을위한글쓰기와발표','서양철학:쟁점과토론','대학영어'],
+    liberalElectivePool: ['세계사','동서양의사상과윤리','경제학','경영학','컴퓨터게임과메타버스','융합예술의이해'],
+    liberalElectiveMin: 2, liberalTotalMin: 14,
+    mscRequired: ['미적분학1','공업수학1','공업수학2','일반물리학1','일반물리학2','일반화학1','SW기초코딩','고급프로그래밍활용','고급인공지능활용','통계학개론'],
+    mscMin: 30, mscBonus: [],
+    majorMin: 54, designMin: 12,
+    designBase: {name:'건축기초설계', credit:3},
+    designElement: [
+      {name:'창의공학설계',credit:1.5}, {name:'건축환경설계',credit:1.5},
+      {name:'건축구조시스템',credit:1}, {name:'건축기계설비시스템',credit:1},
+      {name:'철근콘크리트설계',credit:1}, {name:'철골구조',credit:1},
+      {name:'구조계획및설계',credit:1}, {name:'건축조명',credit:1},
+    ],
+    designCapstone: ['공학설계A','공학설계B'], designCapstoneCredit: 3,
+    totalMin: 98,
+  },
+  2023: null, // 2022와 동일 (아래에서 복사)
+  2024: {
+    liberalRequired: ['문제해결을위한글쓰기와발표','서양철학:쟁점과토론','대학영어'],
+    liberalElectivePool: ['세계사','동서양의사상과윤리','경제학','경영학','컴퓨터게임과메타버스','융합예술의이해'],
+    liberalElectiveMin: 2, liberalTotalMin: 14,
+    mscRequired: ['미적분학1','미적분학2','공업수학1','공업수학2','일반물리학1','일반화학1','SW기초코딩','고급프로그래밍활용'],
+    mscMin: 24, mscBonus: [],
+    majorMin: 45, designMin: 9,
+    designBase: {name:'건축기초설계', credit:3},
+    designElement: [
+      {name:'창의공학설계',credit:1.5}, {name:'건축환경설계',credit:1.5},
+      {name:'건축구조시스템',credit:1}, {name:'건축기계설비시스템',credit:1},
+      {name:'철근콘크리트설계',credit:1}, {name:'철골구조',credit:1},
+      {name:'구조계획및설계',credit:1}, {name:'건축조명',credit:1},
+    ],
+    designCapstone: ['공학설계A','공학설계B'], designCapstoneCredit: 3,
+    totalMin: 83,
+  },
+  2025: {
+    liberalRequired: ['문제해결을위한글쓰기와발표','서양철학:쟁점과토론','대학영어'],
+    liberalElectivePool: ['세계사','동서양의사상과윤리','경제학','경영학','컴퓨터게임과메타버스','융합예술의이해'],
+    liberalElectiveMin: 2, liberalTotalMin: 14,
+    mscRequired: ['SW기초코딩','미적분학1','미적분학2','일반물리학1','공업수학1','공업수학2','일반화학1','고급프로그래밍활용'],
+    mscMin: 24, mscBonus: [],
+    majorMin: 45, designMin: 9,
+    designBase: {name:'건축기초설계', credit:3},
+    designElement: [
+      {name:'건축환경설계',credit:1.5},
+      {name:'건축구조시스템',credit:1}, {name:'건축기계설비시스템',credit:1},
+      {name:'철근콘크리트설계',credit:1}, {name:'철골구조',credit:1},
+      {name:'구조계획및설계',credit:1}, {name:'건축조명',credit:1},
+    ],
+    designCapstone: ['공학설계A','공학설계B'], designCapstoneCredit: 3,
+    totalMin: 83,
+  },
+  2026: {
+    liberalRequired: ['비판적사고와창의적글쓰기','서양철학:쟁점과토론','대학영어'],
+    liberalElectivePool: ['세계사','동서양의사상과윤리','경제학','경영학','컴퓨터게임과메타버스','융합예술의이해'],
+    liberalElectiveMin: 2, liberalTotalMin: 14,
+    mscRequired: ['미적분학1','미적분학2','공업수학1','공업수학2','일반물리학1','SW기초코딩','고급프로그래밍활용'],
+    mscMin: 21, mscBonus: ['일반화학1'], // 21학점엔 미포함, 이수 시 전체 합계엔 가산
+    majorMin: 45, designMin: 9,
+    designBase: {name:'건축기초설계', credit:3},
+    designElement: [
+      {name:'건축환경설계',credit:1.5},
+      {name:'건축구조시스템',credit:1}, {name:'건축기계설비시스템',credit:1},
+      {name:'철근콘크리트설계',credit:1}, {name:'철골구조',credit:1},
+      {name:'구조계획및설계',credit:1}, {name:'건축조명',credit:1},
+    ],
+    designCapstone: ['공학설계A','공학설계B'], designCapstoneCredit: 3,
+    totalMin: 80,
+  },
+};
+ABEEK_REQS[2023] = ABEEK_REQS[2022]; // 2023학번은 2022학번과 동일
+
+// 이수학기 문자열("3-1" 등)을 정렬 가능한 숫자로 변환. 계절학기 등 인식 불가 포맷은 null
+function semRank(sem){
+  if(!sem) return null;
+  const m = String(sem).match(/^(\d)-(\d)$/);
+  if(!m) return null; // 계절학기 등은 순서 판정 불가 처리
+  const grade=+m[1], term=+m[2];
+  return grade*2 - (2-term); // 1-1=1, 1-2=2, 2-1=3 ... 4-2=8
+}
+
+// 이름으로 "실제 이수(합격)된" 과목 찾기 — 재수강 구버전(retake=true)은 제외
+function findEarnedCourse(name){
+  return C.find(c => c.name===name && c.status==='수강완료' && c.grade!=='F' && c.grade!=='NP' && !c.retake) || null;
+}
+
+function checkAbeek(){
+  const req = ABEEK_REQS[yr];
+  if(!req) return null;
+
+  // ── 1. 전문교양 ──
+  const libReqFound = req.liberalRequired.map(name=>({name, course:findEarnedCourse(name)}));
+  const libElecFound = req.liberalElectivePool.map(name=>({name, course:findEarnedCourse(name)}));
+  const libReqOkCount = libReqFound.filter(x=>x.course).length;
+  const libElecOkCount = libElecFound.filter(x=>x.course).length;
+  let libCredits = 0;
+  libReqFound.forEach(x=>{ if(x.course) libCredits += x.course.credits; });
+  libElecFound.forEach(x=>{ if(x.course) libCredits += x.course.credits; });
+  const libOk = libReqOkCount===req.liberalRequired.length && libElecOkCount>=req.liberalElectiveMin && libCredits>=req.liberalTotalMin;
+
+  // ── 2. MSC(학문기초교필) ──
+  const mscFound = req.mscRequired.map(name=>({name, course:findEarnedCourse(name)}));
+  const mscOkCount = mscFound.filter(x=>x.course).length;
+  let mscCredits = 0;
+  mscFound.forEach(x=>{ if(x.course) mscCredits += x.course.credits; });
+  const mscBonusFound = (req.mscBonus||[]).map(name=>({name, course:findEarnedCourse(name)}));
+  let mscBonusCredits = 0;
+  mscBonusFound.forEach(x=>{ if(x.course) mscBonusCredits += x.course.credits; });
+  const mscOk = mscOkCount===req.mscRequired.length && mscCredits>=req.mscMin;
+
+  // ── 3. 전공 (전필+전선 실이수학점) ──
+  let majorCredits = 0;
+  C.forEach(c=>{
+    if((c.category==='전필'||c.category==='전선') && c.status==='수강완료' && c.grade!=='F' && c.grade!=='NP' && !c.retake){
+      majorCredits += c.credits;
+    }
+  });
+
+  // ── 4. 설계학점 (순서 규칙 적용) ──
+  const baseCourse = findEarnedCourse(req.designBase.name);
+  const baseRank = baseCourse ? semRank(baseCourse.takeSem) : null;
+
+  // 종합설계 중 가장 이르게 이수한 학기 랭크 (미인정 판정 기준)
+  const capstoneCourses = req.designCapstone.map(name=>findEarnedCourse(name)).filter(Boolean);
+  const capstoneRanks = capstoneCourses.map(c=>semRank(c.takeSem)).filter(r=>r!=null);
+  const earliestCapstoneRank = capstoneRanks.length ? Math.min(...capstoneRanks) : null;
+
+  const elementDetails = req.designElement.map(el=>{
+    const course = findEarnedCourse(el.name);
+    if(!course) return {name:el.name, status:'미이수', credit:0};
+    const rank = semRank(course.takeSem);
+    if(rank==null){
+      // 학기 정보 없음/계절학기 등 → 순서 판정 불가, 일단 인정하되 주의 표시
+      return {name:el.name, status:'이수(학기확인불가)', credit:el.credit, warn:true};
+    }
+    if(baseRank!=null && rank<baseRank){
+      return {name:el.name, status:'미인정(기초설계 이전 이수)', credit:0};
+    }
+    if(earliestCapstoneRank!=null && rank>earliestCapstoneRank){
+      return {name:el.name, status:'미인정(종합설계 이후 이수)', credit:0};
+    }
+    return {name:el.name, status:'이수(인정)', credit:el.credit};
+  });
+  const elementCreditSum = elementDetails.reduce((s,x)=>s+x.credit,0);
+  const baseCredit = baseCourse ? req.designBase.credit : 0;
+  const capstoneCredit = capstoneCourses.length>0 ? req.designCapstoneCredit : 0;
+  const designTotal = baseCredit + elementCreditSum + capstoneCredit;
+
+  const majorOk = majorCredits>=req.majorMin && designTotal>=req.designMin;
+
+  // ── 5. 총 인증학점 ──
+  const totalRecognized = libCredits + mscCredits + mscBonusCredits + majorCredits;
+  const totalOk = totalRecognized>=req.totalMin && libOk && mscOk && majorOk;
+
+  return {
+    req, libReqFound, libElecFound, libReqOkCount, libElecOkCount, libCredits, libOk,
+    mscFound, mscOkCount, mscCredits, mscBonusFound, mscBonusCredits, mscOk,
+    majorCredits, majorOk,
+    baseCourse, baseRank, elementDetails, elementCreditSum, baseCredit, capstoneCourses, capstoneCredit, designTotal,
+    totalRecognized, totalOk,
+  };
+}
+
+function openAbeek(){
+  const r = checkAbeek();
+  const content = document.getElementById('abContent');
+  if(!r){
+    content.innerHTML = `<div class="ab-note">${yr}학번의 공학인증 요건 데이터가 아직 없어요.</div>`;
+    document.getElementById('abOverlay').classList.add('open');
+    return;
+  }
+
+  const summaryHtml = `<div class="ab-summary ${r.totalOk?'ok':'no'}">
+    <div class="ab-summary-icon">${r.totalOk?'✅':'⚠️'}</div>
+    <div>
+      <div class="ab-summary-text">${r.totalOk?'현재까지 공학인증 요건을 모두 충족했어요':'아직 미충족 항목이 있어요'}</div>
+      <div class="ab-summary-sub">인정학점 ${r.totalRecognized} / 최소 ${r.req.totalMin}학점 (${yr}학번 기준)</div>
+    </div>
+  </div>`;
+
+  function pill(ok){ return `<span class="ab-status-pill ${ok?'ok':'no'}">${ok?'충족':'미충족'}</span>`; }
+  function itemLine(name, ok, tag){
+    return `<div class="ab-item ${ok?'ok':'no'}"><span class="dot"></span><span class="name">${name}</span>${tag?`<span class="tag">${tag}</span>`:''}</div>`;
+  }
+
+  // 1. 전문교양
+  const libHtml = `<div class="ab-section">
+    <div class="ab-section-hdr"><div class="ab-section-title">📘 전문교양</div>${pill(r.libOk)}</div>
+    <div class="ab-progress">${r.libCredits} / ${r.req.liberalTotalMin}학점 · 인증필수 ${r.libReqOkCount}/${r.req.liberalRequired.length} · 인증필수선택 ${r.libElecOkCount}/${r.req.liberalElectiveMin}(이상)</div>
+    <div class="ab-bar"><div class="ab-bar-fill ${r.libOk?'ok':''}" style="width:${Math.min(100,r.libCredits/r.req.liberalTotalMin*100)}%"></div></div>
+    <div class="ab-detail-list">
+      ${r.libReqFound.map(x=>itemLine(x.name, !!x.course, '인증필수')).join('')}
+      ${r.libElecFound.map(x=>itemLine(x.name, !!x.course, '인증필수선택')).join('')}
+    </div>
+  </div>`;
+
+  // 2. MSC
+  const mscHtml = `<div class="ab-section">
+    <div class="ab-section-hdr"><div class="ab-section-title">🧮 MSC (학문기초교필)</div>${pill(r.mscOk)}</div>
+    <div class="ab-progress">${r.mscCredits} / ${r.req.mscMin}학점 · 필수 ${r.mscOkCount}/${r.req.mscRequired.length}과목${r.mscBonusFound.length?` · 인증선택 이수 시 +${r.mscBonusCredits}학점 별도 가산`:''}</div>
+    <div class="ab-bar"><div class="ab-bar-fill ${r.mscOk?'ok':''}" style="width:${Math.min(100,r.mscCredits/r.req.mscMin*100)}%"></div></div>
+    <div class="ab-detail-list">
+      ${r.mscFound.map(x=>itemLine(x.name, !!x.course, '필수')).join('')}
+      ${r.mscBonusFound.map(x=>itemLine(x.name, !!x.course, '인증선택(가산)')).join('')}
+    </div>
+  </div>`;
+
+  // 3. 전공 + 설계
+  const elHtml = r.elementDetails.map(x=>{
+    const ok = x.credit>0;
+    return `<div class="ab-item ${ok?'ok':(x.status==='미이수'?'no':'warn')}"><span class="dot"></span><span class="name">${x.name}</span><span class="tag">${x.status}${ok?` · 설계${x.credit}`:''}</span></div>`;
+  }).join('');
+  const capstoneNames = r.req.designCapstone.map(n=>{
+    const found = r.capstoneCourses.some(c=>c.name===n);
+    return itemLine(n, found, '종합설계');
+  }).join('');
+
+  const majorHtml = `<div class="ab-section">
+    <div class="ab-section-hdr"><div class="ab-section-title">🏗️ 전공 (설계 포함)</div>${pill(r.majorOk)}</div>
+    <div class="ab-progress">전공 이수학점 ${r.majorCredits} / ${r.req.majorMin}학점 · 설계학점 ${r.designTotal} / ${r.req.designMin}학점</div>
+    <div class="ab-bar"><div class="ab-bar-fill ${r.majorCredits>=r.req.majorMin?'ok':''}" style="width:${Math.min(100,r.majorCredits/r.req.majorMin*100)}%"></div></div>
+    <div class="ab-bar"><div class="ab-bar-fill ${r.designTotal>=r.req.designMin?'ok':''}" style="width:${Math.min(100,r.designTotal/r.req.designMin*100)}%"></div></div>
+    <div class="ab-detail-list">
+      ${itemLine(r.req.designBase.name, !!r.baseCourse, `기초설계 · 설계${r.req.designBase.credit}`)}
+      ${elHtml}
+      ${capstoneNames}
+    </div>
+    <div class="ab-note">설계 이수순서: 기초설계(또는 병행) → 요소설계 → 종합설계. 기초설계 이전이나 종합설계 이후에 이수한 요소설계는 설계학점으로 미인정돼요. 공학설계A·B는 모두 이수해도 설계학점은 3학점만 인정돼요. '학기확인불가'는 이수학기가 계절학기 등으로 기록돼 순서를 판정할 수 없어 일단 인정한 항목이에요.</div>
+  </div>`;
+
+  content.innerHTML = summaryHtml + libHtml + mscHtml + majorHtml;
+  document.getElementById('abOverlay').classList.add('open');
+}
+function closeAbeek(){ document.getElementById('abOverlay').classList.remove('open'); }
+function closeAbeekOut(e){ if(e.target===document.getElementById('abOverlay')) closeAbeek(); }
+
 // ── 시간표 ──
 const TT_DAYS=['월','화','수','목','금','토'];
 const TT_START_HOUR=7, TT_END_HOUR=22; // 07:00~22:00 표시
 let ttEditingId=null; // 현재 시간 등록 폼이 열려있는 과목 id
 let ttFormDays=new Set(); // 폼에서 선택 중인 요일들
+let ttFormOnline=false; // 폼에서 '온라인' 선택 여부
+let ttSem=''; // 현재 선택된 예정학기 (빈값=미설정, buildTtSemOptions에서 자동 지정됨)
 
 function openTimetable(){
   document.getElementById('ttOverlay').classList.add('open');
+  buildTtSemOptions();
   renderTimetable();
 }
 function closeTimetable(){ document.getElementById('ttOverlay').classList.remove('open'); ttEditingId=null; }
 function closeTimetableOut(e){ if(e.target===document.getElementById('ttOverlay')) closeTimetable(); }
+
+// 수강예정 과목들의 planSem 목록을 모아 학기 선택 드롭다운을 채움
+function buildTtSemOptions(){
+  const planned=C.filter(c=>c.status==='수강예정');
+  const sems=[...new Set(planned.map(c=>c.planSem).filter(Boolean))].sort();
+  const sel=document.getElementById('ttSemSelect');
+  const noSemCnt=planned.filter(c=>!c.planSem).length;
+
+  let opts='';
+  sems.forEach(s=>{
+    const cnt=planned.filter(c=>c.planSem===s).length;
+    opts+=`<option value="${s}"${ttSem===s?' selected':''}>${s} (${cnt}과목)</option>`;
+  });
+  if(noSemCnt>0) opts+=`<option value="__NONE__"${ttSem==='__NONE__'?' selected':''}>학기 미지정 (${noSemCnt}과목)</option>`;
+
+  if(!opts){ opts=`<option value="__NONE__">과목 없음</option>`; }
+  sel.innerHTML=opts;
+
+  // 이전 선택값이 더 이상 존재하지 않으면 첫 번째 옵션으로
+  const validValues=[...sems, ...(noSemCnt>0?['__NONE__']:[])];
+  if(!validValues.includes(ttSem)){
+    ttSem = sems.length>0 ? sems[0] : '__NONE__';
+  }
+  sel.value=ttSem;
+}
+
+function setTtSem(v){ ttSem=v; renderTimetable(); }
 
 function timeToMin(t){ // "09:30" -> 570
   const [h,m]=(t||'00:00').split(':').map(Number);
@@ -2070,19 +2404,20 @@ function timeToMin(t){ // "09:30" -> 570
 }
 function ttColorClass(idx){ return `tt-c${idx%8}`; }
 
-// 시간 겹침 체크: 같은 요일에서 슬롯 구간이 겹치는지
+// 시간 겹침 체크: 같은 요일에서 슬롯 구간이 겹치는지 (온라인 슬롯은 시간 개념이 없어 제외)
 function findConflicts(courses){
-  const items=[]; // {courseId, day, start, end}
+  const items=[];
   courses.forEach(c=>{
     (c.ttSlots||[]).forEach(s=>{
+      if(s.online) return;
       items.push({courseId:c.id, name:c.name, day:s.day, start:timeToMin(s.start), end:timeToMin(s.end)});
     });
   });
-  const conflicts=new Set(); // "day|start|end" 형태로 충돌난 슬롯 표시용, 여기선 courseId+day+start 키 사용
+  const conflicts=new Set();
   for(let i=0;i<items.length;i++){
     for(let j=i+1;j<items.length;j++){
       const a=items[i], b=items[j];
-      if(a.courseId===b.courseId) continue; // 같은 과목 내 중복은 무시
+      if(a.courseId===b.courseId) continue;
       if(a.day!==b.day) continue;
       if(a.start<b.end && b.start<a.end){
         conflicts.add(`${a.courseId}|${a.day}|${a.start}`);
@@ -2094,32 +2429,47 @@ function findConflicts(courses){
 }
 
 function renderTimetable(){
-  const planned=C.filter(c=>c.status==='수강예정');
+  let planned=C.filter(c=>c.status==='수강예정');
+  if(ttSem==='__NONE__') planned=planned.filter(c=>!c.planSem);
+  else if(ttSem) planned=planned.filter(c=>c.planSem===ttSem);
 
   // ── 그리드 헤더 ──
   const totalHours=TT_END_HOUR-TT_START_HOUR;
   let gridHtml=`<div class="tt-corner"></div>`;
   TT_DAYS.forEach(d=>{ gridHtml+=`<div class="tt-day-head">${d}</div>`; });
 
-  // 시간 라벨 + 빈 셀 (배경 그리드)
   for(let h=TT_START_HOUR;h<TT_END_HOUR;h++){
     gridHtml+=`<div class="tt-hour-label">${h}</div>`;
     for(let d=0;d<TT_DAYS.length;d++){
       gridHtml+=`<div class="tt-cell"></div>`;
     }
   }
+  // 온라인 강의 행 (가장 아래)
+  gridHtml+=`<div class="tt-online-label">온라인</div>`;
+  for(let d=0;d<TT_DAYS.length;d++){
+    gridHtml+=`<div class="tt-online-cell" data-online-col="${d}"></div>`;
+  }
+
   document.getElementById('ttGrid').innerHTML=gridHtml;
-  document.getElementById('ttGrid').style.gridTemplateRows=`28px repeat(${totalHours},32px)`;
+  document.getElementById('ttGrid').style.gridTemplateRows=`28px repeat(${totalHours},32px) 36px`;
 
   // ── 블록 절대배치 (그리드 위에 오버레이) ──
   const conflicts=findConflicts(planned);
   const gridEl=document.getElementById('ttGrid');
   const dayColWidth=`calc((100% - 52px) / 6)`;
+  const onlineRowTop = 28 + totalHours*32; // 온라인 행 시작 y좌표
   let blocksHtml='';
+  // 온라인 슬롯은 같은 요일 칸에 여러 과목이 겹칠 수 있어 인덱스별로 살짝 겹쳐 표시
+  const onlineByDay={};
   planned.forEach((c,idx)=>{
     (c.ttSlots||[]).forEach(s=>{
       const dayIdx=TT_DAYS.indexOf(s.day);
       if(dayIdx<0) return;
+      if(s.online){
+        onlineByDay[dayIdx]=onlineByDay[dayIdx]||[];
+        onlineByDay[dayIdx].push({name:c.name, colorClass:ttColorClass(idx)});
+        return;
+      }
       const startMin=timeToMin(s.start), endMin=timeToMin(s.end);
       if(endMin<=startMin) return;
       const top = 28 + ((startMin - TT_START_HOUR*60)/60)*32;
@@ -2130,6 +2480,18 @@ function renderTimetable(){
         title="${c.name} ${s.start}~${s.end}${isConflict?' (시간 겹침!)':''}">
         ${c.name}<div class="tt-block-time">${s.start}~${s.end}</div>
       </div>`;
+    });
+  });
+  // 온라인 행 블록 렌더 (요일별로 세로로 쌓기)
+  Object.keys(onlineByDay).forEach(dayIdxStr=>{
+    const dayIdx=Number(dayIdxStr);
+    const items=onlineByDay[dayIdx];
+    const n=items.length;
+    items.forEach((it,i)=>{
+      const h=36/n;
+      blocksHtml+=`<div class="tt-block online ${it.colorClass}"
+        style="top:${onlineRowTop + i*h}px;height:${Math.max(h,14)}px;left:calc(52px + ${dayIdx} * ${dayColWidth} + 2px);width:calc(${dayColWidth} - 4px);font-size:9px"
+        title="${it.name} (온라인)">${it.name}</div>`;
     });
   });
   gridEl.insertAdjacentHTML('beforeend', `<div style="position:absolute;inset:0;pointer-events:none">${blocksHtml}</div>`);
@@ -2147,12 +2509,12 @@ function renderTimetable(){
   // ── 과목별 시간 등록 목록 ──
   const listEl=document.getElementById('ttCourseList');
   if(planned.length===0){
-    listEl.innerHTML=`<div class="tt-empty">수강예정으로 표시된 과목이 없어요.<br>테이블에서 과목 상태를 '수강예정'으로 바꾸면 여기에 나타나요.</div>`;
+    listEl.innerHTML=`<div class="tt-empty">이 학기에 수강예정으로 표시된 과목이 없어요.<br>테이블에서 과목 상태를 '수강예정'으로 바꾸고 예정학기를 지정하면 여기에 나타나요.</div>`;
     return;
   }
   listEl.innerHTML=planned.map((c,idx)=>{
     const slotsHtml=(c.ttSlots||[]).map((s,si)=>
-      `<span class="tt-slot-tag">${s.day} ${s.start}~${s.end}<button onclick="removeTtSlot('${c.id}',${si})" title="삭제">✕</button></span>`
+      `<span class="tt-slot-tag">${s.online?'💻 온라인':`${s.day} ${s.start}~${s.end}`}<button onclick="removeTtSlot('${c.id}',${si})" title="삭제">✕</button></span>`
     ).join('');
     const formHtml = ttEditingId===c.id ? renderTtForm(c.id) : '';
     return `<div class="tt-course-row" style="flex-wrap:wrap">
@@ -2168,6 +2530,7 @@ function renderTimetable(){
 function toggleTtForm(id){
   ttEditingId = ttEditingId===id ? null : id;
   ttFormDays = new Set();
+  ttFormOnline = false;
   renderTimetable();
 }
 
@@ -2186,11 +2549,12 @@ function ttTimeOptions(selected){
 
 function renderTtForm(id){
   const dayBtns = TT_DAYS.map(d=>`<button type="button" class="tt-day-btn${ttFormDays.has(d)?' on':''}" onclick="toggleTtFormDay('${d}',this)">${d}</button>`).join('');
+  const onlineBtn = `<button type="button" class="tt-day-btn${ttFormOnline?' on':''}" style="width:auto;padding:0 8px" onclick="toggleTtFormOnline(this)" title="온라인 강의로 등록">💻 온라인</button>`;
   return `<div class="tt-time-form" style="width:100%">
-    <div class="tt-day-select">${dayBtns}</div>
-    <select class="tt-time-input" id="ttStart-${id}">${ttTimeOptions('09:00')}</select>
+    <div class="tt-day-select">${dayBtns}${onlineBtn}</div>
+    <select class="tt-time-input" id="ttStart-${id}" ${ttFormOnline?'disabled':''}>${ttTimeOptions('09:00')}</select>
     <span style="font-size:11px;color:var(--muted)">~</span>
-    <select class="tt-time-input" id="ttEnd-${id}">${ttTimeOptions('10:30')}</select>
+    <select class="tt-time-input" id="ttEnd-${id}" ${ttFormOnline?'disabled':''}>${ttTimeOptions('10:30')}</select>
     <button class="btn btn-p" style="padding:5px 12px;font-size:12px" onclick="addTtSlot('${id}')">추가</button>
   </div>`;
 }
@@ -2200,16 +2564,37 @@ function toggleTtFormDay(day, btn){
   btn.classList.toggle('on');
 }
 
+function toggleTtFormOnline(btn){
+  ttFormOnline = !ttFormOnline;
+  btn.classList.toggle('on');
+  const startSel=document.querySelector('[id^="ttStart-"]');
+  const endSel=document.querySelector('[id^="ttEnd-"]');
+  if(startSel) startSel.disabled=ttFormOnline;
+  if(endSel) endSel.disabled=ttFormOnline;
+}
+
 function addTtSlot(id){
-  if(ttFormDays.size===0){ alert('요일을 하나 이상 선택해주세요.'); return; }
-  const start=document.getElementById(`ttStart-${id}`).value;
-  const end=document.getElementById(`ttEnd-${id}`).value;
-  if(!start || !end){ alert('시작/종료 시간을 입력해주세요.'); return; }
-  if(timeToMin(end)<=timeToMin(start)){ alert('종료 시간이 시작 시간보다 늦어야 해요.'); return; }
   const c=C.find(x=>x.id===id); if(!c) return;
   if(!c.ttSlots) c.ttSlots=[];
-  ttFormDays.forEach(day=>{ c.ttSlots.push({day, start, end}); });
+
+  if(ttFormOnline){
+    // 온라인은 요일 구분 없이 하나로 등록 (요일 선택했으면 그 요일들에, 안 했으면 '온라인' 자체로 1개)
+    if(ttFormDays.size===0){
+      c.ttSlots.push({day:'월', online:true}); // 요일 미지정 시 대표로 월 저장(그리드 표시엔 무관, 목록엔 '온라인'만 표시)
+    } else {
+      ttFormDays.forEach(day=>{ c.ttSlots.push({day, online:true}); });
+    }
+  } else {
+    if(ttFormDays.size===0){ alert('요일을 하나 이상 선택하거나 온라인을 선택해주세요.'); return; }
+    const start=document.getElementById(`ttStart-${id}`).value;
+    const end=document.getElementById(`ttEnd-${id}`).value;
+    if(!start || !end){ alert('시작/종료 시간을 입력해주세요.'); return; }
+    if(timeToMin(end)<=timeToMin(start)){ alert('종료 시간이 시작 시간보다 늦어야 해요.'); return; }
+    ttFormDays.forEach(day=>{ c.ttSlots.push({day, start, end}); });
+  }
+
   ttFormDays=new Set();
+  ttFormOnline=false;
   ttEditingId=null;
   sv();
   renderTimetable();
@@ -2242,7 +2627,7 @@ document.addEventListener('click',e=>{
   if(sp.style.display==='block'&&!sp.contains(e.target)&&!e.target.closest('[onclick*="openSemPop"]'))sp.style.display='none';
 },{capture:true});
 
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){document.getElementById('gradePopup').style.display='none';document.getElementById('semPopup').style.display='none';closeAddDirect();closeTimetable();}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){document.getElementById('gradePopup').style.display='none';document.getElementById('semPopup').style.display='none';closeAddDirect();closeTimetable();closeAbeek();}});
 
 // ── INIT ──
 (async()=>{
