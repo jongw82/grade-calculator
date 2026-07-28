@@ -328,6 +328,14 @@ input[type=checkbox]{width:14px;height:14px;accent-color:var(--accent);cursor:po
     <div style="font-size:12px;color:var(--muted);margin:8px 0">처음 사용하시나요?</div>
     <button class="login-btn" id="signupBtn" onclick="doSignup()" style="background:var(--accent-light);color:var(--accent);border-color:#c5d0fb">회원가입</button>
 
+    <div style="display:flex;align-items:center;gap:8px;margin:16px 0 12px">
+      <div style="flex:1;height:1px;background:var(--border)"></div>
+      <span style="font-size:11px;color:var(--muted)">또는</span>
+      <div style="flex:1;height:1px;background:var(--border)"></div>
+    </div>
+    <button class="login-btn" onclick="continueOffline()" style="background:var(--surface2);color:var(--text2);border-color:var(--border)">📴 오프라인으로 계속하기</button>
+    <div style="font-size:10px;color:var(--muted);margin-top:6px;line-height:1.5">이 기기에만 데이터가 저장돼요.<br>다른 기기와 자동 동기화되지 않아요.</div>
+
     <div style="font-size:11px;color:var(--muted);margin-top:16px">Sejong University · Architectural Engineering</div>
   </div>
 </div>
@@ -913,6 +921,7 @@ const SUPABASE_URL='https://oyphtlqxfaifwdoxtdxr.supabase.co';
 const SUPABASE_KEY='sb_publishable_6fsZAY8H0BAuf5uKzUZpdg_9_Uai_Fc';
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 let currentUser=null;
+let isOffline=false;
 
 // ── STORAGE (로컬 백업 + 클라우드 동기화) ──
 async function sv(){
@@ -961,6 +970,7 @@ function toggleProjected(){
   const btn=document.getElementById('projToggle');
   if(btn) btn.classList.toggle('on',showProjected);
   updStats();
+  render();
 }
 
 // ── AUTH ──
@@ -1010,8 +1020,21 @@ async function afterLogin(){
   else{updH();updStats();render();}
 }
 
+// 오프라인 모드로 계속하기 — Supabase 로그인 없이 로컬 저장소만 사용
+function continueOffline(){
+  isOffline=true;
+  currentUser=null;
+  showApp();
+  ldLocal();
+  if(!uname) openOnboard(false);
+  else { updH(); updStats(); render(); }
+}
+
 async function logout(){
-  await sb.auth.signOut();
+  if(!isOffline){
+    try{ await sb.auth.signOut(); }catch(e){}
+  }
+  isOffline=false;
   currentUser=null;
   C=[];yr=2022;uname='';
   localStorage.clear();
@@ -1051,7 +1074,8 @@ function saveOnboard(){
 function updH(){
   document.getElementById('hAv').textContent=uname?uname[0]:'?';
   document.getElementById('hName').textContent=uname||'—';
-  document.getElementById('hMeta').textContent=yr?`${yr}학번 · 건축공학과`:'—';
+  const offlineTag = isOffline ? ' · 📴 오프라인' : '';
+  document.getElementById('hMeta').textContent=yr?`${yr}학번 · 건축공학과${offlineTag}`:'—';
 }
 function setAdmYear(y){
   const ny=parseInt(y);if(ny===yr)return;
@@ -1328,15 +1352,35 @@ function render(){
   // ── 학기 요약 ──
   const sumEl=document.getElementById('semSummary');
   if(semFilt!=='전체'){
-    // 현재 필터된 rows 중 수강완료이고 재수강=false인 것만 계산
     const doneRows=rows.filter(r=>r.status==='수강완료'&&!r.retake);
+    const projRows=rows.filter(r=>(r.status==='수강예정'||r.status==='수강중')&&!r.retake);
     let semEarn=0,semGS=0,semGC=0,semCnt=rows.length,semDoneCnt=doneRows.length;
     for(const r of doneRows){
       const gp=GMAP[r.grade];
       if(r.grade!=='F'&&r.grade!=='NP') semEarn+=r.credits;
       if(gp!=null){semGS+=gp*r.credits;semGC+=r.credits;}
     }
-    const semGPA=semGC>0?(semGS/semGC).toFixed(2):'—';
+
+    // 예상성적 반영 ON일 때 — 이 학기의 수강예정/수강중 과목 중 예상성적이 입력된 것 반영
+    let semProjEarn=semEarn, semProjGS=semGS, semProjGC=semGC, semProjCount=0;
+    for(const r of projRows){
+      semProjEarn += (r.credits||0);
+      const eg=r.expGrade||'-';
+      const egp=GMAP[eg];
+      if(egp!=null){
+        semProjGS += egp*(r.credits||0);
+        semProjGC += (r.credits||0);
+        semProjCount++;
+      }
+    }
+    const semProjGPA = semProjGC>0 ? (semProjGS/semProjGC).toFixed(2) : '—';
+
+    const useEarn = showProjected ? semProjEarn : semEarn;
+    const useGPA  = showProjected ? semProjGPA  : (semGC>0?(semGS/semGC).toFixed(2):'—');
+    const earnLabel = showProjected ? '이수+예정 학점' : '이수 학점';
+    const earnSub   = showProjected ? `수강완료+예정 <span class="proj-badge" style="margin-left:2px">예상</span>` : '수강완료 기준';
+    const gpaSub    = showProjected ? `4.5 만점 <span class="proj-badge" style="margin-left:2px">예상 ${semProjCount}과목</span>` : '4.5 만점';
+
     const semLabel=semFilt==='계절'?'계절학기':semFilt==='미지정'?'미지정':`${semFilt}학기`;
     document.getElementById('semSummaryTitle').textContent=`${semLabel} 현황`;
     document.getElementById('semSummaryCards').innerHTML=`
@@ -1346,14 +1390,14 @@ function render(){
         <div style="font-size:10px;color:var(--muted);margin-top:2px">완료 ${semDoneCnt}개</div>
       </div>
       <div style="background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:10px 14px">
-        <div style="font-size:10px;color:var(--muted);font-weight:600;margin-bottom:4px">이수 학점</div>
-        <div style="font-size:22px;font-weight:800;color:var(--green)">${semEarn}</div>
-        <div style="font-size:10px;color:var(--muted);margin-top:2px">수강완료 기준</div>
+        <div style="font-size:10px;color:var(--muted);font-weight:600;margin-bottom:4px">${earnLabel}</div>
+        <div style="font-size:22px;font-weight:800;color:var(--green)">${useEarn}</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px">${earnSub}</div>
       </div>
       <div style="background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:10px 14px">
         <div style="font-size:10px;color:var(--muted);font-weight:600;margin-bottom:4px">평균 학점</div>
-        <div style="font-size:22px;font-weight:800;color:var(--accent)">${semGPA}</div>
-        <div style="font-size:10px;color:var(--muted);margin-top:2px">4.5 만점</div>
+        <div style="font-size:22px;font-weight:800;color:var(--accent)">${useGPA}</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px">${gpaSub}</div>
       </div>
       <div style="background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:10px 14px">
         <div style="font-size:10px;color:var(--muted);font-weight:600;margin-bottom:4px">등록 학점</div>
