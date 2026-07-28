@@ -1097,6 +1097,7 @@ function updStats(){
 
   // 예상성적(expGrade) 반영 계산 — 수강예정/수강중 과목 중 예상성적을 입력한 것만 GPA에 가중 반영
   let projGS=gs, projGC=gc, projEarn=earn, projCount=0;
+  const catProjGS={...catGS}, catProjGC={...catGC}; // 분류별 예상 GPA용 (얕은 복사로 시작)
 
   // ① 재수강예정 스왑: 원본의 실제 성적 → 사본의 예상성적으로 대체
   const retakePlanCopyOf={}; // originalId -> copy
@@ -1111,11 +1112,17 @@ function updStats(){
     // 원본 기여분 제거
     const origGp=GMAP[orig.grade];
     if(orig.grade!=='F'&&orig.grade!=='NP') projEarn -= orig.credits;
-    if(origGp!=null){ projGS -= origGp*orig.credits; projGC -= orig.credits; }
+    if(origGp!=null){
+      projGS -= origGp*orig.credits; projGC -= orig.credits;
+      catProjGS[orig.category]=(catProjGS[orig.category]||0)-origGp*orig.credits;
+      catProjGC[orig.category]=(catProjGC[orig.category]||0)-orig.credits;
+    }
     // 사본(예상성적) 기여분 추가
     projEarn += copy.credits;
     projGS += egp*copy.credits;
     projGC += copy.credits;
+    catProjGS[copy.category]=(catProjGS[copy.category]||0)+egp*copy.credits;
+    catProjGC[copy.category]=(catProjGC[copy.category]||0)+copy.credits;
     projCount++;
   }
 
@@ -1129,6 +1136,8 @@ function updStats(){
     if(egp!=null){
       projGS += egp*(c.credits||0);
       projGC += (c.credits||0);
+      catProjGS[c.category]=(catProjGS[c.category]||0)+egp*(c.credits||0);
+      catProjGC[c.category]=(catProjGC[c.category]||0)+(c.credits||0);
       projCount++;
     }
   }
@@ -1152,22 +1161,25 @@ function updStats(){
   setText('sCntS', `완료 ${done.length} · 수강중 ${doing.length} · 미수강 ${C.filter(c=>c.status==='미수강').length}`);
   setText('ytag', `${yr}학번`);
 
-  // 분류별 GPA 카드
-  const majGS=(catGS['전필']||0)+(catGS['전선']||0);
-  const majGC=(catGC['전필']||0)+(catGC['전선']||0);
+  // 분류별 GPA 카드 — 예상성적 반영 토글에 따라 실제/예상 값을 선택
+  const useGS = showProjected ? catProjGS : catGS;
+  const useGC = showProjected ? catProjGC : catGC;
+  const majGS=(useGS['전필']||0)+(useGS['전선']||0);
+  const majGC=(useGC['전필']||0)+(useGC['전선']||0);
   const catDefs=[
     {key:'전공',label:'전공 전체',gs:majGS,gc:majGC,color:'var(--accent)'},
-    {key:'전필',label:'전공필수',gs:catGS['전필']||0,gc:catGC['전필']||0,color:'var(--accent)'},
-    {key:'전선',label:'전공선택',gs:catGS['전선']||0,gc:catGC['전선']||0,color:'var(--purple)'},
-    {key:'교필',label:'공통교필',gs:catGS['교필']||0,gc:catGC['교필']||0,color:'var(--yellow)'},
-    {key:'학기초',label:'학문기초교필',gs:catGS['학기초']||0,gc:catGC['학기초']||0,color:'var(--orange)'},
-    {key:'교선',label:'균형교필',gs:catGS['교선']||0,gc:catGC['교선']||0,color:'var(--green)'},
-    ...(req.전기!=null?[{key:'전기',label:'전공기초',gs:catGS['전기']||0,gc:catGC['전기']||0,color:'var(--blue)'}]:[]),
+    {key:'전필',label:'전공필수',gs:useGS['전필']||0,gc:useGC['전필']||0,color:'var(--accent)'},
+    {key:'전선',label:'전공선택',gs:useGS['전선']||0,gc:useGC['전선']||0,color:'var(--purple)'},
+    {key:'교필',label:'공통교필',gs:useGS['교필']||0,gc:useGC['교필']||0,color:'var(--yellow)'},
+    {key:'학기초',label:'학문기초교필',gs:useGS['학기초']||0,gc:useGC['학기초']||0,color:'var(--orange)'},
+    {key:'교선',label:'균형교필',gs:useGS['교선']||0,gc:useGC['교선']||0,color:'var(--green)'},
+    ...(req.전기!=null?[{key:'전기',label:'전공기초',gs:useGS['전기']||0,gc:useGC['전기']||0,color:'var(--blue)'}]:[]),
   ];
   document.getElementById('catGPA').innerHTML=catDefs.map(d=>{
     const gpa=d.gc>0?(d.gs/d.gc).toFixed(2):'—';
+    const projTag = showProjected ? '<span class="proj-badge" style="margin-left:4px">예상</span>' : '';
     return`<div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 12px">
-      <div style="font-size:10px;color:var(--muted);font-weight:600;margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px">${d.label}</div>
+      <div style="font-size:10px;color:var(--muted);font-weight:600;margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px">${d.label}${projTag}</div>
       <div style="font-size:20px;font-weight:800;letter-spacing:-1px;color:${d.gc>0?d.color:'var(--border2)'};">${gpa}</div>
       <div style="font-size:10px;color:var(--muted);margin-top:2px">${d.gc>0?`${d.gc}학점 기준`:'이수 없음'}</div>
     </div>`;
