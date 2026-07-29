@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>세종대 건축공학과 학점 계산기</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root {
@@ -26,7 +27,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:1
 /* HEADER */
 .header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 28px;display:flex;align-items:center;justify-content:space-between;height:60px;position:sticky;top:0;z-index:100;box-shadow:0 1px 4px rgba(0,0,0,.06)}
 .hL{display:flex;align-items:center;gap:12px}
-.logo{width:34px;height:34px;background:var(--accent);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:900;color:#fff}
+.logo{width:34px;height:34px;background:#fff;border:1px solid var(--border);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:900;color:#fff}
 .h-title{font-size:15px;font-weight:700;letter-spacing:-.3px}
 .h-sub{font-size:11px;color:var(--muted);margin-top:1px}
 .uchip{display:flex;align-items:center;gap:10px}
@@ -389,7 +390,7 @@ input[type=checkbox]{width:14px;height:14px;accent-color:var(--accent);cursor:po
 /* ── LOGIN SCREEN ── */
 .login-screen{position:fixed;inset:0;background:var(--bg);z-index:500;display:flex;align-items:center;justify-content:center}
 .login-box{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:40px 36px;width:380px;max-width:92vw;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.10)}
-.login-logo{width:52px;height:52px;background:var(--accent);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:900;color:#fff;margin:0 auto 16px}
+.login-logo{width:52px;height:52px;background:#fff;border:1px solid var(--border);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:900;color:#fff;margin:0 auto 16px}
 .login-title{font-size:20px;font-weight:800;margin-bottom:6px;letter-spacing:-.3px}
 .login-sub{font-size:13px;color:var(--muted);margin-bottom:28px;line-height:1.6}
 .login-btn{width:100%;padding:12px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font);display:flex;align-items:center;justify-content:center;gap:10px;transition:all .15s;margin-bottom:10px}
@@ -405,7 +406,7 @@ input[type=checkbox]{width:14px;height:14px;accent-color:var(--accent);cursor:po
 <!-- 로그인 화면 -->
 <div class="login-screen" id="loginScreen">
   <div class="login-box">
-    <div class="login-logo">學</div>
+    <div class="login-logo"><img src="favicon.svg" alt="세종대학교" style="width:60%;height:60%;object-fit:contain"></div>
     <div class="login-title">세종대 건축공학과<br>학점 계산기</div>
     <div class="login-sub" id="loginSub">학번과 비밀번호로 로그인하세요.<br>어느 기기에서도 데이터가 동기화돼요.</div>
 
@@ -438,7 +439,7 @@ input[type=checkbox]{width:14px;height:14px;accent-color:var(--accent);cursor:po
 
 <header class="header">
   <div class="hL">
-    <div class="logo">學</div>
+    <div class="logo"><img src="favicon.svg" alt="세종대학교" style="width:70%;height:70%;object-fit:contain"></div>
     <div><div class="h-title">세종대 건축공학과 학점 계산기</div><div class="h-sub">Sejong University · Architectural Engineering</div></div>
   </div>
   <div class="uchip">
