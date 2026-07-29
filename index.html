@@ -646,9 +646,56 @@ input[type=checkbox]{width:14px;height:14px;accent-color:var(--accent);cursor:po
 </div>
 
 <div class="fab">
+  <button class="fab-btn admin-fab-btn" id="adminFabBtn" onclick="openAdmin()" style="display:none">⚙️ 관리자 모드</button>
   <button class="fab-btn" onclick="exportData()">💾 내보내기</button>
   <button class="fab-btn" onclick="document.getElementById('importFile').click()">📂 불러오기</button>
   <input type="file" id="importFile" accept=".json" style="display:none" onchange="loadFile(event)">
+</div>
+
+<!-- 관리자 모드 패널 -->
+<div class="overlay" id="adminOv" onclick="closeAdminOut(event)">
+  <div class="modal" style="width:640px">
+    <div class="mhdr">
+      <div class="mtitle">⚙️ 관리자 모드 — 교과과정 관리</div>
+      <button class="mclose" onclick="closeAdmin()">×</button>
+    </div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:14px;line-height:1.6">
+      여기서 추가/삭제하면 <b>신규 가입자</b>는 물론, <b>이미 가입한 사용자</b>에게도 반영돼요.<br>
+      추가: 해당 학번 전원에게 과목을 미수강 상태로 추가해요. (이미 있으면 건너뜀)<br>
+      삭제: 해당 학번 사용자 중 <b>미수강 상태인 사람만</b> 과목을 제거해요. 성적이 있거나 수강중/예정인 사람은 보호돼요.
+    </div>
+    <div class="year-select-wrap" style="margin-bottom:14px">
+      <label>학번</label>
+      <select id="adminYearSelect" onchange="loadAdminCourseList()">
+        <option value="2022">2022학번</option><option value="2023">2023학번</option>
+        <option value="2024">2024학번</option><option value="2025">2025학번</option>
+        <option value="2026">2026학번</option>
+      </select>
+    </div>
+
+    <div style="border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:14px">
+      <div style="font-size:12px;font-weight:700;margin-bottom:8px">+ 새 과목 추가</div>
+      <div class="fgrid">
+        <div class="fg full"><label class="flbl">강의명 *</label><input class="finp" id="adminName" type="text" placeholder="예: 신설과목"></div>
+        <div class="fg"><label class="flbl">학점</label><input class="finp" id="adminCredits" type="number" min="1" max="6" value="3"></div>
+        <div class="fg"><label class="flbl">분류</label>
+          <select class="finp" id="adminCategory">
+            <option value="전필">전공필수</option><option value="전선">전공선택</option>
+            <option value="교필">공통교양필수</option><option value="교선">균형교양필수</option>
+            <option value="학기초">학문기초교양필수</option><option value="전기">전공기초</option>
+            <option value="기타">교양선택</option>
+          </select>
+        </div>
+        <div class="fg"><label class="flbl">권장학기</label><input class="finp" id="adminSemester" type="text" placeholder="예: 3-1"></div>
+        <div class="fg"><label class="flbl">필수선수</label><input class="finp" id="adminPrereq" type="text" placeholder="선택"></div>
+      </div>
+      <button class="btn btn-p" style="margin-top:10px;width:100%;justify-content:center" onclick="adminAddCourse()">이 학번 전체에 추가</button>
+    </div>
+
+    <div style="font-size:12px;font-weight:700;margin-bottom:8px">현재 교과과정 목록</div>
+    <div id="adminCourseList" style="max-height:280px;overflow-y:auto;display:flex;flex-direction:column;gap:5px"></div>
+    <div id="adminResultMsg" style="font-size:12px;margin-top:10px;padding:8px 10px;border-radius:8px;display:none"></div>
+  </div>
 </div>
 
 <!-- 과목 추가 모달 (새 과목만; 기존 과목은 인라인 수정) -->
@@ -1137,6 +1184,8 @@ const SUPABASE_KEY='sb_publishable_6fsZAY8H0BAuf5uKzUZpdg_9_Uai_Fc';
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 let currentUser=null;
 let isOffline=false;
+const ADMIN_EMAIL='22011031@sejong.ac.kr';
+function isAdmin(){ return !isOffline && currentUser && currentUser.email===ADMIN_EMAIL; }
 
 // ── STORAGE (로컬 백업 + 클라우드 동기화) ──
 async function sv(){
@@ -1241,6 +1290,7 @@ async function afterLogin(){
   if(!ok)ldLocal();
   if(!uname)openOnboard(false);
   else{updH();updStats();render();}
+  updAdminBtn();
 }
 
 // 오프라인 모드로 계속하기 — Supabase 로그인 없이 로컬 저장소만 사용
@@ -1265,6 +1315,7 @@ async function logout(){
   document.getElementById('authId').value='';
   document.getElementById('authPw').value='';
   document.getElementById('loginMsg').style.display='none';
+  updAdminBtn();
 }
 
 function showApp(){
@@ -1272,6 +1323,22 @@ function showApp(){
 }
 
 // ── ONBOARD ──
+// 교과과정 원본을 Supabase에서 불러오기 (오프라인/실패 시 로컬 PRESETS로 폴백)
+async function loadCurriculumFromCloud(y){
+  if(isOffline || !sb) return PRESETS[y] || null;
+  try{
+    const{data,error}=await sb.from('curriculum_templates').select('*').eq('year',y).order('name');
+    if(error || !data || data.length===0) return PRESETS[y] || null;
+    return data.map(row=>({
+      name:row.name, credits:row.credits, dc:row.dc||0,
+      semester:row.semester||'', category:row.category,
+      prereq:row.prereq||'', prereqRec:row.prereq_rec||'',
+    }));
+  }catch(e){
+    return PRESETS[y] || null;
+  }
+}
+
 function openOnboard(edit=false){
   document.getElementById('obTit').textContent=edit?'✏️ 정보 수정':'👋 처음 오셨군요!';
   document.getElementById('obSub').style.display=edit?'none':'block';
@@ -1280,19 +1347,21 @@ function openOnboard(edit=false){
   document.getElementById('obOv').classList.add('open');
   setTimeout(()=>document.getElementById('obN').focus(),80);
 }
-function saveOnboard(){
+async function saveOnboard(){
   const n=document.getElementById('obN').value.trim(),y=parseInt(document.getElementById('obY').value);
   if(!n)return;
   const first=!uname,yc=y!==yr;
   uname=n;
   if(first||yc){
     yr=y;const _ay=document.getElementById('admYear');if(_ay)_ay.value=y;
-    if(PRESETS[y]){
+    const preset = await loadCurriculumFromCloud(y);
+    if(preset){
       if(!first&&C.length>0&&!confirm(`${y}학번 교과과정으로 초기화합니다. 계속할까요?`)){document.getElementById('obOv').classList.remove('open');return;}
-      C=PRESETS[y].map((p,i)=>mkC(p,i));
+      C=preset.map((p,i)=>mkC(p,i));
     } else if(first) C=[];
   }
   sv();updH();updStats();render();document.getElementById('obOv').classList.remove('open');
+  updAdminBtn();
 }
 function updH(){
   document.getElementById('hAv').textContent=uname?uname[0]:'?';
@@ -1300,10 +1369,13 @@ function updH(){
   const offlineTag = isOffline ? ' · 📴 오프라인' : '';
   document.getElementById('hMeta').textContent=yr?`${yr}학번 · 건축공학과${offlineTag}`:'—';
 }
-function setAdmYear(y){
+async function setAdmYear(y){
   const ny=parseInt(y);if(ny===yr)return;
-  if(!confirm(PRESETS[ny]?`${ny}학번으로 변경하면 교과과정이 초기화됩니다. 계속할까요?`:`${ny}학번으로 변경합니다. 계속할까요?`)){const _ay=document.getElementById('admYear');if(_ay)_ay.value=yr;return;}
-  yr=ny;if(PRESETS[ny])C=PRESETS[ny].map((p,i)=>mkC(p,i));
+  const willReset = !isOffline || !!PRESETS[ny];
+  if(!confirm(willReset?`${ny}학번으로 변경하면 교과과정이 초기화됩니다. 계속할까요?`:`${ny}학번으로 변경합니다. 계속할까요?`)){const _ay=document.getElementById('admYear');if(_ay)_ay.value=yr;return;}
+  yr=ny;
+  const preset = await loadCurriculumFromCloud(ny);
+  if(preset) C=preset.map((p,i)=>mkC(p,i));
   sv();updH();updStats();render();
 }
 
@@ -2234,6 +2306,122 @@ function bulkSetGrade(g){
 
 function clearAll(){C=[];selectedIds.clear();sv();updStats();render();}
 
+// ── 관리자 모드 ──
+function updAdminBtn(){
+  const btn=document.getElementById('adminFabBtn');
+  if(!btn) return;
+  btn.style.display = isAdmin() ? 'flex' : 'none';
+}
+
+function openAdmin(){
+  if(!isAdmin()){ alert('관리자만 접근할 수 있어요.'); return; }
+  document.getElementById('adminYearSelect').value = yr;
+  document.getElementById('adminOv').classList.add('open');
+  document.getElementById('adminResultMsg').style.display='none';
+  loadAdminCourseList();
+}
+function closeAdmin(){ document.getElementById('adminOv').classList.remove('open'); }
+function closeAdminOut(e){ if(e.target===document.getElementById('adminOv')) closeAdmin(); }
+
+async function loadAdminCourseList(){
+  const y = parseInt(document.getElementById('adminYearSelect').value);
+  const listEl = document.getElementById('adminCourseList');
+  listEl.innerHTML = '<div style="font-size:12px;color:var(--muted);text-align:center;padding:12px">불러오는 중...</div>';
+  const{data,error} = await sb.from('curriculum_templates').select('*').eq('year',y).order('semester').order('name');
+  if(error){ listEl.innerHTML = '<div style="font-size:12px;color:var(--red)">불러오기 실패</div>'; return; }
+  if(!data.length){ listEl.innerHTML = '<div style="font-size:12px;color:var(--muted);text-align:center;padding:12px">등록된 과목이 없어요.</div>'; return; }
+  listEl.innerHTML = data.map(c=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--border);border-radius:8px;font-size:12px">
+      <span style="font-weight:700;flex:1">${c.name}</span>
+      <span style="color:var(--muted)">${c.credits}학점</span>
+      <span class="badge badge-${c.category}">${catLabel(c.category)}</span>
+      <span style="color:var(--muted);width:36px;text-align:center">${c.semester||'—'}</span>
+      <button class="del-btn" onclick="adminDeleteCourse('${c.id}','${c.name.replace(/'/g,"\\'")}',${y})" title="전체 삭제">🗑️</button>
+    </div>`).join('');
+}
+
+function showAdminResult(msg, isErr=false){
+  const el=document.getElementById('adminResultMsg');
+  el.textContent=msg;
+  el.style.display='block';
+  el.style.background = isErr ? 'var(--red-light)' : 'var(--green-light)';
+  el.style.color = isErr ? 'var(--red)' : 'var(--green)';
+  el.style.border = `1px solid ${isErr?'#fca5a5':'#86efac'}`;
+}
+
+// 새 과목을 원본 테이블 + 해당 학번 전체 사용자에게 추가
+async function adminAddCourse(){
+  const y = parseInt(document.getElementById('adminYearSelect').value);
+  const name = document.getElementById('adminName').value.trim();
+  if(!name){ alert('강의명을 입력해주세요.'); return; }
+  const credits = parseInt(document.getElementById('adminCredits').value)||3;
+  const category = document.getElementById('adminCategory').value;
+  const semester = document.getElementById('adminSemester').value.trim();
+  const prereq = document.getElementById('adminPrereq').value.trim();
+
+  // 1) 원본 테이블에 추가 (신규 가입자용)
+  const{error:insErr} = await sb.from('curriculum_templates').insert({
+    year:y, name, credits, dc:0, semester, category, prereq, prereq_rec:''
+  });
+  if(insErr){
+    showAdminResult(`원본 추가 실패: 이미 같은 이름의 과목이 있을 수 있어요. (${insErr.message})`, true);
+    return;
+  }
+
+  // 2) 해당 학번 전체 사용자 데이터에 반영
+  const{data:rows, error:selErr} = await sb.from('courses').select('id,user_id,data');
+  if(selErr){ showAdminResult('사용자 목록 조회 실패: '+selErr.message, true); return; }
+
+  let updated=0, skipped=0;
+  for(const row of rows){
+    const d = row.data;
+    if(!d || d.yr !== y) continue;
+    const already = (d.courses||[]).some(c=>c.name===name);
+    if(already){ skipped++; continue; }
+    const newCourse = {
+      id: Date.now().toString()+Math.random().toString(36).slice(2),
+      name, credits, dc:0, semester, category, prereq, prereqRec:'',
+      grade:'-', prevGrade:'-', expGrade:'-', status:'미수강',
+      retake:false, retakePlan:false, retakePlanOf:null,
+      takeSem:'', planSem:'', ttSlots:[],
+    };
+    d.courses = [...(d.courses||[]), newCourse];
+    const{error:updErr} = await sb.from('courses').update({data:d}).eq('id',row.id);
+    if(!updErr) updated++;
+  }
+  showAdminResult(`✅ '${name}' 추가 완료 — ${y}학번 ${updated}명에게 추가됨 (이미 있어서 건너뜀 ${skipped}명)`);
+  loadAdminCourseList();
+  // 새 과목 입력 폼 초기화
+  document.getElementById('adminName').value='';
+  document.getElementById('adminSemester').value='';
+  document.getElementById('adminPrereq').value='';
+}
+
+// 원본 테이블에서 삭제 + 해당 학번 사용자 중 '미수강' 상태인 사람만 제거
+async function adminDeleteCourse(templateId, name, y){
+  if(!confirm(`'${name}' 과목을 삭제할까요?\n\n- 원본 교과과정에서 제거돼요 (앞으로 신규 가입자는 안 보임)\n- 이미 가입한 사용자 중 '미수강' 상태인 사람은 자동으로 제거돼요\n- 성적이 있거나 수강중/수강예정인 사람은 보호되어 그대로 유지돼요`)) return;
+
+  const{error:delErr} = await sb.from('curriculum_templates').delete().eq('id',templateId);
+  if(delErr){ showAdminResult('원본 삭제 실패: '+delErr.message, true); return; }
+
+  const{data:rows, error:selErr} = await sb.from('courses').select('id,user_id,data');
+  if(selErr){ showAdminResult('사용자 목록 조회 실패: '+selErr.message, true); return; }
+
+  let removed=0, protectedCount=0;
+  for(const row of rows){
+    const d = row.data;
+    if(!d || d.yr !== y) continue;
+    const target = (d.courses||[]).find(c=>c.name===name);
+    if(!target) continue;
+    if(target.status!=='미수강'){ protectedCount++; continue; }
+    d.courses = d.courses.filter(c=>c.name!==name);
+    const{error:updErr} = await sb.from('courses').update({data:d}).eq('id',row.id);
+    if(!updErr) removed++;
+  }
+  showAdminResult(`✅ '${name}' 삭제 완료 — ${y}학번 ${removed}명에게서 제거됨 (${protectedCount}명은 수강 기록이 있어 보호됨)`);
+  loadAdminCourseList();
+}
+
 // ── 공학인증(ABEEK) 요건 ──
 const ABEEK_REQS = {
   2022: {
@@ -2751,7 +2939,7 @@ document.addEventListener('click',e=>{
   if(sp.style.display==='block'&&!sp.contains(e.target)&&!e.target.closest('[onclick*="openSemPop"]'))sp.style.display='none';
 },{capture:true});
 
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){document.getElementById('gradePopup').style.display='none';document.getElementById('semPopup').style.display='none';closeAddDirect();closeTimetable();closeAbeek();}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){document.getElementById('gradePopup').style.display='none';document.getElementById('semPopup').style.display='none';closeAddDirect();closeTimetable();closeAbeek();closeAdmin();}});
 
 // ── INIT ──
 (async()=>{
