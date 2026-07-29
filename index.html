@@ -712,16 +712,18 @@ input[type=checkbox]{width:14px;height:14px;accent-color:var(--accent);cursor:po
     </div>
     <div style="font-size:11px;color:var(--muted);margin-bottom:14px;line-height:1.6">
       여기서 추가/삭제하면 <b>신규 가입자</b>는 물론, <b>이미 가입한 사용자</b>에게도 반영돼요.<br>
-      추가: 해당 학번 전원에게 과목을 미수강 상태로 추가해요. (이미 있으면 건너뜀)<br>
-      삭제: 해당 학번 사용자 중 <b>미수강 상태인 사람만</b> 과목을 제거해요. 성적이 있거나 수강중/예정인 사람은 보호돼요.
+      추가: 체크된 학번들에게 과목을 미수강 상태로 추가해요. (이미 있으면 건너뜀)<br>
+      삭제/수정: 체크된 학번들 중 <b>미수강 상태인 사람만</b> 반영돼요. 성적이 있거나 수강중/예정인 사람은 보호돼요.
     </div>
-    <div class="year-select-wrap" style="margin-bottom:14px">
-      <label>학번</label>
-      <select id="adminYearSelect" onchange="loadAdminCourseList()">
-        <option value="2022">2022학번</option><option value="2023">2023학번</option>
-        <option value="2024">2024학번</option><option value="2025">2025학번</option>
-        <option value="2026">2026학번</option>
-      </select>
+    <div style="margin-bottom:14px">
+      <label style="font-size:11px;color:var(--muted);font-weight:600;display:block;margin-bottom:6px">대상 학번 (체크한 학번끼리 겹치는 과목만 아래 목록에 표시돼요)</label>
+      <div id="adminYearChecks" style="display:flex;gap:10px;flex-wrap:wrap">
+        <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer"><input type="checkbox" class="admin-yr-chk" value="2022" checked onchange="loadAdminCourseList()">2022학번</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer"><input type="checkbox" class="admin-yr-chk" value="2023" checked onchange="loadAdminCourseList()">2023학번</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer"><input type="checkbox" class="admin-yr-chk" value="2024" checked onchange="loadAdminCourseList()">2024학번</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer"><input type="checkbox" class="admin-yr-chk" value="2025" checked onchange="loadAdminCourseList()">2025학번</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer"><input type="checkbox" class="admin-yr-chk" value="2026" checked onchange="loadAdminCourseList()">2026학번</label>
+      </div>
     </div>
 
     <div style="border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:14px">
@@ -2417,9 +2419,12 @@ function updAdminBtn(){
   btn.style.display = isAdmin() ? 'flex' : 'none';
 }
 
+function getCheckedYears(){
+  return Array.from(document.querySelectorAll('.admin-yr-chk:checked')).map(el=>parseInt(el.value)).sort();
+}
+
 function openAdmin(){
   if(!isAdmin()){ alert('관리자만 접근할 수 있어요.'); return; }
-  document.getElementById('adminYearSelect').value = yr;
   document.getElementById('adminOv').classList.add('open');
   document.getElementById('adminResultMsg').style.display='none';
   document.getElementById('adminHelpMsg').style.display='none';
@@ -2476,25 +2481,53 @@ async function adminSaveHelp(){
 }
 
 async function loadAdminCourseList(){
-  const y = parseInt(document.getElementById('adminYearSelect').value);
+  const years = getCheckedYears();
   const listEl = document.getElementById('adminCourseList');
+  if(years.length===0){ listEl.innerHTML = '<div style="font-size:12px;color:var(--muted);text-align:center;padding:12px">학번을 하나 이상 체크해주세요.</div>'; return; }
   listEl.innerHTML = '<div style="font-size:12px;color:var(--muted);text-align:center;padding:12px">불러오는 중...</div>';
-  const{data,error} = await sb.from('curriculum_templates').select('*').eq('year',y).order('semester').order('name');
+  const{data,error} = await sb.from('curriculum_templates').select('*').in('year',years).order('name');
   if(error){ listEl.innerHTML = '<div style="font-size:12px;color:var(--red)">불러오기 실패</div>'; return; }
-  if(!data.length){ listEl.innerHTML = '<div style="font-size:12px;color:var(--muted);text-align:center;padding:12px">등록된 과목이 없어요.</div>'; return; }
-  adminCourseCache = data; // 인라인 수정 폼에서 참조
-  listEl.innerHTML = data.map(c=>`
-    <div id="adminRow-${c.id}">
-      <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--border);border-radius:8px;font-size:12px">
-        <span style="font-weight:700;flex:1">${c.name}${c.remark?`<span style="font-size:10px;color:var(--accent);margin-left:5px">📝</span>`:''}</span>
-        <span style="color:var(--muted)">${c.credits}학점</span>
-        <span class="badge badge-${c.category}">${catLabel(c.category)}</span>
-        <span style="color:var(--muted);width:36px;text-align:center">${c.semester||'—'}</span>
-        <button class="action-btn" onclick="toggleAdminEdit('${c.id}')" title="수정">✏️</button>
-        <button class="del-btn" onclick="adminDeleteCourse('${c.id}','${c.name.replace(/'/g,"\\'")}',${y})" title="전체 삭제">🗑️</button>
+
+  // 이름별로 그룹화 → 체크된 학번 '전부'에 존재하는 이름만 남김 (교집합)
+  const byName = {};
+  data.forEach(row=>{ (byName[row.name] = byName[row.name]||[]).push(row); });
+  const groupNames = Object.keys(byName).filter(name => {
+    const yearsPresent = new Set(byName[name].map(r=>r.year));
+    return years.every(y=>yearsPresent.has(y));
+  }).sort();
+
+  adminCourseCache = data; // 인라인 수정 폼에서 참조 (id로 조회)
+
+  if(groupNames.length===0){
+    listEl.innerHTML = `<div style="font-size:12px;color:var(--muted);text-align:center;padding:12px">체크된 ${years.join(', ')}학번 전부에 공통으로 있는 과목이 없어요.</div>`;
+    return;
+  }
+
+  listEl.innerHTML = groupNames.map(name=>{
+    const rows = byName[name].filter(r=>years.includes(r.year)).sort((a,b)=>a.year-b.year);
+    const hasRemark = rows.some(r=>r.remark);
+    const subRows = rows.map(c=>`
+      <div id="adminRow-${c.id}" style="padding-left:14px;border-left:2px solid var(--border);margin-top:4px">
+        <div style="display:flex;align-items:center;gap:8px;padding:5px 8px;font-size:11px">
+          <span style="color:var(--accent);font-weight:700;width:44px">${c.year}</span>
+          <span style="color:var(--muted)">${c.credits}학점</span>
+          <span class="badge badge-${c.category}" style="font-size:10px">${catLabel(c.category)}</span>
+          <span style="color:var(--muted);width:36px;text-align:center">${c.semester||'—'}</span>
+          <span style="flex:1;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.remark||''}</span>
+          <button class="action-btn" onclick="toggleAdminEdit('${c.id}')" title="이 학번만 수정">✏️</button>
+          <button class="del-btn" onclick="adminDeleteCourse('${c.id}','${c.name.replace(/'/g,"\\'")}',${c.year})" title="이 학번에서만 삭제">🗑️</button>
+        </div>
+        <div id="adminEditForm-${c.id}"></div>
+      </div>`).join('');
+    return `<div style="border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:4px">
+      <div style="display:flex;align-items:center;gap:8px;font-size:12px">
+        <span style="font-weight:700;flex:1">${name}${hasRemark?'<span style="font-size:10px;color:var(--accent);margin-left:5px">📝</span>':''}</span>
+        <span style="font-size:10px;color:var(--muted);background:var(--surface2);border-radius:999px;padding:2px 8px">${rows.length}개 학번</span>
+        <button class="btn btn-d" style="padding:3px 9px;font-size:11px" onclick="adminBulkDelete('${name.replace(/'/g,"\\'")}',[${rows.map(r=>r.year).join(',')}])">체크된 학번 전체 삭제</button>
       </div>
-      <div id="adminEditForm-${c.id}"></div>
-    </div>`).join('');
+      ${subRows}
+    </div>`;
+  }).join('');
 }
 
 let adminCourseCache = [];
@@ -2542,7 +2575,8 @@ function showAdminResult(msg, isErr=false){
 
 // 새 과목을 원본 테이블 + 해당 학번 전체 사용자에게 추가
 async function adminAddCourse(){
-  const y = parseInt(document.getElementById('adminYearSelect').value);
+  const years = getCheckedYears();
+  if(years.length===0){ alert('추가할 학번을 하나 이상 체크해주세요.'); return; }
   const name = document.getElementById('adminName').value.trim();
   if(!name){ alert('강의명을 입력해주세요.'); return; }
   const credits = parseInt(document.getElementById('adminCredits').value)||3;
@@ -2551,37 +2585,40 @@ async function adminAddCourse(){
   const prereq = document.getElementById('adminPrereq').value.trim();
   const remark = document.getElementById('adminRemark').value.trim();
 
-  // 1) 원본 테이블에 추가 (신규 가입자용)
-  const{error:insErr} = await sb.from('curriculum_templates').insert({
-    year:y, name, credits, dc:0, semester, category, prereq, prereq_rec:'', remark
-  });
-  if(insErr){
-    showAdminResult(`원본 추가 실패: 이미 같은 이름의 과목이 있을 수 있어요. (${insErr.message})`, true);
-    return;
-  }
-
-  // 2) 해당 학번 전체 사용자 데이터에 반영
-  const{data:rows, error:selErr} = await sb.from('courses').select('id,user_id,data');
+  // 사용자 데이터는 한 번만 조회해서 재사용 (학번마다 다시 안 불러옴)
+  const{data:allRows, error:selErr} = await sb.from('courses').select('id,user_id,data');
   if(selErr){ showAdminResult('사용자 목록 조회 실패: '+selErr.message, true); return; }
 
-  let updated=0, skipped=0;
-  for(const row of rows){
-    const d = row.data;
-    if(!d || d.yr !== y) continue;
-    const already = (d.courses||[]).some(c=>c.name===name);
-    if(already){ skipped++; continue; }
-    const newCourse = {
-      id: Date.now().toString()+Math.random().toString(36).slice(2),
-      name, credits, dc:0, semester, category, prereq, prereqRec:'', remark,
-      grade:'-', prevGrade:'-', expGrade:'-', status:'미수강',
-      retake:false, retakePlan:false, retakePlanOf:null,
-      takeSem:'', planSem:'', ttSlots:[],
-    };
-    d.courses = [...(d.courses||[]), newCourse];
-    const{error:updErr} = await sb.from('courses').update({data:d}).eq('id',row.id);
-    if(!updErr) updated++;
+  let totalUpdated=0, totalSkippedUsers=0, yearResults=[];
+  for(const y of years){
+    const{error:insErr} = await sb.from('curriculum_templates').insert({
+      year:y, name, credits, dc:0, semester, category, prereq, prereq_rec:'', remark
+    });
+    if(insErr){
+      yearResults.push(`${y}학번: 원본 추가 실패(이미 있음)`);
+      continue;
+    }
+    let updated=0, skipped=0;
+    for(const row of allRows){
+      const d = row.data;
+      if(!d || d.yr !== y) continue;
+      const already = (d.courses||[]).some(c=>c.name===name);
+      if(already){ skipped++; continue; }
+      const newCourse = {
+        id: Date.now().toString()+Math.random().toString(36).slice(2),
+        name, credits, dc:0, semester, category, prereq, prereqRec:'', remark,
+        grade:'-', prevGrade:'-', expGrade:'-', status:'미수강',
+        retake:false, retakePlan:false, retakePlanOf:null,
+        takeSem:'', planSem:'', ttSlots:[],
+      };
+      d.courses = [...(d.courses||[]), newCourse];
+      const{error:updErr} = await sb.from('courses').update({data:d}).eq('id',row.id);
+      if(!updErr) updated++;
+    }
+    totalUpdated += updated; totalSkippedUsers += skipped;
+    yearResults.push(`${y}학번: ${updated}명 추가`);
   }
-  showAdminResult(`✅ '${name}' 추가 완료 — ${y}학번 ${updated}명에게 추가됨 (이미 있어서 건너뜀 ${skipped}명)`);
+  showAdminResult(`✅ '${name}' 처리 완료 — ${yearResults.join(' · ')}`);
   loadAdminCourseList();
   // 새 과목 입력 폼 초기화
   document.getElementById('adminName').value='';
@@ -2625,15 +2662,13 @@ async function adminSaveEdit(templateId, y){
   loadAdminCourseList();
 }
 
-// 원본 테이블에서 삭제 + 해당 학번 사용자 중 '미수강' 상태인 사람만 제거
-async function adminDeleteCourse(templateId, name, y){
-  if(!confirm(`'${name}' 과목을 삭제할까요?\n\n- 원본 교과과정에서 제거돼요 (앞으로 신규 가입자는 안 보임)\n- 이미 가입한 사용자 중 '미수강' 상태인 사람은 자동으로 제거돼요\n- 성적이 있거나 수강중/수강예정인 사람은 보호되어 그대로 유지돼요`)) return;
-
+// 실제 삭제 처리 (확인창 없이) — 단일 학번용/일괄용 공통 사용
+async function deleteCourseCore(templateId, name, y){
   const{error:delErr} = await sb.from('curriculum_templates').delete().eq('id',templateId);
-  if(delErr){ showAdminResult('원본 삭제 실패: '+delErr.message, true); return; }
+  if(delErr) return {error:delErr.message};
 
   const{data:rows, error:selErr} = await sb.from('courses').select('id,user_id,data');
-  if(selErr){ showAdminResult('사용자 목록 조회 실패: '+selErr.message, true); return; }
+  if(selErr) return {error:selErr.message};
 
   let removed=0, protectedCount=0;
   for(const row of rows){
@@ -2646,7 +2681,33 @@ async function adminDeleteCourse(templateId, name, y){
     const{error:updErr} = await sb.from('courses').update({data:d}).eq('id',row.id);
     if(!updErr) removed++;
   }
-  showAdminResult(`✅ '${name}' 삭제 완료 — ${y}학번 ${removed}명에게서 제거됨 (${protectedCount}명은 수강 기록이 있어 보호됨)`);
+  return {removed, protectedCount};
+}
+
+// 원본 테이블에서 삭제 + 해당 학번 사용자 중 '미수강' 상태인 사람만 제거 (단일 학번)
+async function adminDeleteCourse(templateId, name, y){
+  if(!confirm(`'${name}' 과목을 ${y}학번에서 삭제할까요?\n\n- 원본 교과과정에서 제거돼요 (앞으로 신규 가입자는 안 보임)\n- 이미 가입한 사용자 중 '미수강' 상태인 사람은 자동으로 제거돼요\n- 성적이 있거나 수강중/수강예정인 사람은 보호되어 그대로 유지돼요`)) return;
+
+  const r = await deleteCourseCore(templateId, name, y);
+  if(r.error){ showAdminResult('삭제 실패: '+r.error, true); return; }
+  showAdminResult(`✅ '${name}' 삭제 완료 — ${y}학번 ${r.removed}명에게서 제거됨 (${r.protectedCount}명은 수강 기록이 있어 보호됨)`);
+  loadAdminCourseList();
+}
+
+// 체크된 학번 전체에서 한 번에 삭제
+async function adminBulkDelete(name, years){
+  if(!confirm(`'${name}' 과목을 아래 학번 전체에서 삭제할까요?\n\n대상: ${years.join(', ')}학번\n\n- 각 학번 원본 교과과정에서 제거돼요\n- 이미 가입한 사용자 중 '미수강' 상태인 사람만 자동 제거돼요\n- 성적이 있거나 수강중/수강예정인 사람은 보호돼요`)) return;
+
+  let totalRemoved=0, totalProtected=0, results=[];
+  for(const y of years){
+    const row = adminCourseCache.find(c=>c.name===name && c.year===y);
+    if(!row){ results.push(`${y}학번: 못 찾음`); continue; }
+    const r = await deleteCourseCore(row.id, name, y);
+    if(r.error){ results.push(`${y}학번: 실패`); continue; }
+    totalRemoved += r.removed; totalProtected += r.protectedCount;
+    results.push(`${y}학번: ${r.removed}명 제거`);
+  }
+  showAdminResult(`✅ '${name}' 일괄 삭제 완료 — ${results.join(' · ')} (보호됨 총 ${totalProtected}명)`);
   loadAdminCourseList();
 }
 
