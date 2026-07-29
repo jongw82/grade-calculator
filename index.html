@@ -320,6 +320,25 @@ tbody tr.retake-plan-row{background:#faf5ff}
 .badge-기타{background:var(--surface2);color:var(--muted);border:1px solid var(--border)}
 
 .del-btn{background:none;border:none;cursor:pointer;color:var(--muted);font-size:13px;padding:3px 5px;border-radius:5px;transition:all .15s}
+.review-btn{background:var(--accent-light);color:var(--accent);border:1px solid #c5d0fb;cursor:pointer;font-size:10px;font-weight:600;padding:2px 7px;border-radius:999px;margin-left:5px;vertical-align:middle;white-space:nowrap;transition:all .15s;font-family:var(--font)}
+.review-btn:hover{background:var(--accent);color:#fff}
+.review-btn.has-reviews{opacity:1}
+
+/* ── 강의 후기 모달 ── */
+.rv-overlay{position:fixed;inset:0;background:rgba(15,20,50,.4);backdrop-filter:blur(2px);z-index:420;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
+.rv-overlay.open{opacity:1;pointer-events:all}
+.rv-modal{background:var(--surface);border-radius:18px;padding:22px;width:min(520px,94vw);max-height:88vh;overflow-y:auto;box-shadow:0 12px 40px rgba(0,0,0,.2);transform:translateY(8px);transition:transform .2s}
+.rv-overlay.open .rv-modal{transform:translateY(0)}
+.rv-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+.rv-title{font-size:16px;font-weight:800}
+.rv-sub{font-size:11px;color:var(--muted);margin-bottom:14px}
+.rv-list{display:flex;flex-direction:column;gap:8px;margin-bottom:16px;max-height:280px;overflow-y:auto}
+.rv-item{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:13px;line-height:1.6;color:var(--text2)}
+.rv-item-date{font-size:10px;color:var(--muted);margin-top:6px}
+.rv-empty{text-align:center;color:var(--muted);font-size:12px;padding:20px}
+.rv-write-box{border-top:1px dashed var(--border);padding-top:14px}
+.rv-textarea{width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:var(--font);resize:vertical;min-height:70px}
+.rv-my-badge{font-size:10px;color:var(--accent);font-weight:700;background:var(--accent-light);border-radius:5px;padding:1px 6px;margin-right:6px}
 .del-btn:hover{background:var(--red-light);color:var(--red)}
 .chk-col{width:32px;text-align:center}
 input[type=checkbox]{width:14px;height:14px;accent-color:var(--accent);cursor:pointer}
@@ -656,6 +675,19 @@ input[type=checkbox]{width:14px;height:14px;accent-color:var(--accent);cursor:po
   <input type="file" id="importFile" accept=".json" style="display:none" onchange="loadFile(event)">
 </div>
 
+<!-- 강의 후기 모달 -->
+<div class="rv-overlay" id="rvOverlay" onclick="closeReviewOut(event)">
+  <div class="rv-modal">
+    <div class="rv-hdr">
+      <div class="rv-title">💬 <span id="rvCourseName">—</span> 후기</div>
+      <button class="mclose" onclick="closeReview()">×</button>
+    </div>
+    <div class="rv-sub">모든 후기는 익명으로 표시돼요. 작성자 정보는 관리자만 확인할 수 있어요.</div>
+    <div class="rv-list" id="rvList"><div class="rv-empty">불러오는 중...</div></div>
+    <div class="rv-write-box" id="rvWriteBox"></div>
+  </div>
+</div>
+
 <!-- 도움말 모달 -->
 <div class="overlay" id="helpOv" onclick="closeHelpOut(event)">
   <div class="modal" style="width:480px">
@@ -755,6 +787,12 @@ input[type=checkbox]{width:14px;height:14px;accent-color:var(--accent);cursor:po
       <textarea id="adminHelpText" rows="6" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:var(--font);resize:vertical" placeholder="자유롭게 작성해주세요..."></textarea>
       <button class="btn btn-p" style="margin-top:8px;width:100%;justify-content:center" onclick="adminSaveHelp()">도움말 저장</button>
       <div id="adminHelpMsg" style="font-size:12px;margin-top:8px;display:none"></div>
+    </div>
+
+    <div style="border-top:1px dashed var(--border);margin-top:18px;padding-top:16px">
+      <div style="font-size:12px;font-weight:700;margin-bottom:8px">💬 강의 후기 관리 <span style="font-weight:400;color:var(--muted);font-size:11px">(작성자 정보는 관리자만 볼 수 있어요)</span></div>
+      <input class="finp" id="adminReviewSearch" type="text" placeholder="과목명으로 검색..." oninput="loadAdminReviews()" style="margin-bottom:8px">
+      <div id="adminReviewList" style="max-height:280px;overflow-y:auto;display:flex;flex-direction:column;gap:6px"></div>
     </div>
   </div>
 </div>
@@ -1934,7 +1972,7 @@ function render(){
 
     return`<tr class="${rowCls}">
       <td class="chk-col"><input type="checkbox" class="rchk" data-id="${c.id}" ${selectedIds.has(c.id)?'checked':''} onchange="toggleRowSelect('${c.id}',this.checked)"></td>
-      <td style="font-weight:600;min-width:120px;${isExcluded?'text-decoration:line-through;color:var(--muted)':''}">${c.name}${isExcluded?'<span style="font-size:9px;background:#fee2e2;color:var(--red);border-radius:4px;padding:1px 4px;margin-left:4px;font-weight:600;vertical-align:middle">계산제외</span>':''}${c.retakePlanOf?'<span style="font-size:9px;background:#ede9fe;color:var(--purple);border-radius:4px;padding:1px 4px;margin-left:4px;font-weight:600;vertical-align:middle">재수강예정 사본</span>':''}</td>
+      <td style="font-weight:600;min-width:120px;${isExcluded?'text-decoration:line-through;color:var(--muted)':''}">${c.name}<button class="review-btn" onclick="openReview('${c.name.replace(/'/g,"\\'")}')" title="강의 후기 보기/작성">강의후기</button>${isExcluded?'<span style="font-size:9px;background:#fee2e2;color:var(--red);border-radius:4px;padding:1px 4px;margin-left:4px;font-weight:600;vertical-align:middle">계산제외</span>':''}${c.retakePlanOf?'<span style="font-size:9px;background:#ede9fe;color:var(--purple);border-radius:4px;padding:1px 4px;margin-left:4px;font-weight:600;vertical-align:middle">재수강예정 사본</span>':''}</td>
       <td style="font-weight:700;text-align:center;${isExcluded?'color:var(--muted);text-decoration:line-through':''}">${c.credits}</td>
       <td style="color:var(--muted);text-align:center;font-size:12px">${c.semester||'—'}</td>
       <td style="text-align:center">${semCell}</td>
@@ -2430,9 +2468,99 @@ function openAdmin(){
   document.getElementById('adminHelpMsg').style.display='none';
   loadAdminCourseList();
   loadAdminHelpText();
+  loadAdminReviews();
 }
 function closeAdmin(){ document.getElementById('adminOv').classList.remove('open'); }
 function closeAdminOut(e){ if(e.target===document.getElementById('adminOv')) closeAdmin(); }
+
+// ── 강의 후기 ──
+let rvCurrentCourse = null;
+let rvMyReview = null; // 내가 쓴 리뷰 (있으면)
+
+async function openReview(courseName){
+  if(isOffline){ alert('오프라인 모드에서는 후기 기능을 사용할 수 없어요. 로그인 후 이용해주세요.'); return; }
+  rvCurrentCourse = courseName;
+  document.getElementById('rvCourseName').textContent = courseName;
+  document.getElementById('rvList').innerHTML = '<div class="rv-empty">불러오는 중...</div>';
+  document.getElementById('rvWriteBox').innerHTML = '';
+  document.getElementById('rvOverlay').classList.add('open');
+  try{
+    await loadReviews();
+  }catch(e){
+    document.getElementById('rvList').innerHTML = `<div class="rv-empty">불러오기 중 오류가 발생했어요: ${e.message}</div>`;
+  }
+}
+function closeReview(){ document.getElementById('rvOverlay').classList.remove('open'); rvCurrentCourse=null; }
+function closeReviewOut(e){ if(e.target===document.getElementById('rvOverlay')) closeReview(); }
+
+async function loadReviews(){
+  const name = rvCurrentCourse;
+  // 1) 익명 공개 목록 (뷰 사용 — 작성자 정보 없음)
+  const{data:pubData, error:pubErr} = await sb.from('course_reviews_public').select('id,content,created_at').eq('course_name',name).order('created_at',{ascending:false});
+  const listEl = document.getElementById('rvList');
+  if(pubErr){
+    listEl.innerHTML = `<div class="rv-empty">불러오기 실패: ${pubErr.message}</div>`;
+  } else if(!pubData || pubData.length===0){
+    listEl.innerHTML = '<div class="rv-empty">아직 후기가 없어요. 첫 후기를 남겨보세요!</div>';
+  } else {
+    listEl.innerHTML = pubData.map(r=>{
+      const isMine = rvMyReview && rvMyReview.id===r.id;
+      const date = new Date(r.created_at).toLocaleDateString('ko-KR');
+      return `<div class="rv-item">${isMine?'<span class="rv-my-badge">내 후기</span>':''}${r.content}<div class="rv-item-date">${date}</div></div>`;
+    }).join('');
+  }
+
+  // 2) 내가 쓴 리뷰 확인 (본인 것만 조회 가능한 원본 테이블 사용)
+  if(currentUser){
+    const{data:mineData} = await sb.from('course_reviews').select('id,content').eq('course_name',name).eq('user_id',currentUser.id).maybeSingle();
+    rvMyReview = mineData || null;
+  }
+  renderReviewWriteBox();
+}
+
+function renderReviewWriteBox(){
+  const box = document.getElementById('rvWriteBox');
+  if(rvMyReview){
+    box.innerHTML = `
+      <div style="font-size:11px;color:var(--muted);font-weight:600;margin-bottom:6px">내가 쓴 후기</div>
+      <textarea class="rv-textarea" id="rvTextarea">${rvMyReview.content}</textarea>
+      <div style="display:flex;gap:6px;margin-top:8px">
+        <button class="btn btn-p" style="flex:1;justify-content:center" onclick="saveReview()">수정</button>
+        <button class="btn btn-d" style="flex:1;justify-content:center" onclick="deleteMyReview()">삭제</button>
+      </div>`;
+  } else {
+    box.innerHTML = `
+      <div style="font-size:11px;color:var(--muted);font-weight:600;margin-bottom:6px">후기 작성하기</div>
+      <textarea class="rv-textarea" id="rvTextarea" placeholder="이 강의에 대한 솔직한 후기를 남겨주세요. 익명으로 표시돼요."></textarea>
+      <button class="btn btn-p" style="width:100%;justify-content:center;margin-top:8px" onclick="saveReview()">등록</button>`;
+  }
+}
+
+async function saveReview(){
+  const content = document.getElementById('rvTextarea').value.trim();
+  if(!content){ alert('내용을 입력해주세요.'); return; }
+  if(!currentUser){ alert('로그인이 필요해요.'); return; }
+
+  if(rvMyReview){
+    const{error} = await sb.from('course_reviews').update({content}).eq('id',rvMyReview.id);
+    if(error){ alert('수정 실패: '+error.message); return; }
+  } else {
+    const{error} = await sb.from('course_reviews').insert({
+      course_name: rvCurrentCourse, user_id: currentUser.id, uname, yr, content
+    });
+    if(error){ alert('등록 실패: '+error.message); return; }
+  }
+  await loadReviews();
+}
+
+async function deleteMyReview(){
+  if(!rvMyReview) return;
+  if(!confirm('내 후기를 삭제할까요?')) return;
+  const{error} = await sb.from('course_reviews').delete().eq('id',rvMyReview.id);
+  if(error){ alert('삭제 실패: '+error.message); return; }
+  rvMyReview = null;
+  await loadReviews();
+}
 
 // ── 도움말 ──
 async function fetchHelpContent(){
@@ -2478,6 +2606,36 @@ async function adminSaveHelp(){
     el.textContent = '✅ 도움말이 저장됐어요.';
     el.style.color='var(--green)';
   }
+}
+
+// ── 관리자: 강의 후기 관리 (작성자 정보 포함 전체 조회 + 삭제) ──
+async function loadAdminReviews(){
+  const listEl = document.getElementById('adminReviewList');
+  const q = document.getElementById('adminReviewSearch').value.trim();
+  listEl.innerHTML = '<div style="font-size:12px;color:var(--muted);text-align:center;padding:12px">불러오는 중...</div>';
+  let query = sb.from('course_reviews').select('*').order('created_at',{ascending:false});
+  if(q) query = query.ilike('course_name', `%${q}%`);
+  const{data,error} = await query;
+  if(error){ listEl.innerHTML = `<div style="font-size:12px;color:var(--red)">불러오기 실패: ${error.message}</div>`; return; }
+  if(!data || data.length===0){ listEl.innerHTML = '<div style="font-size:12px;color:var(--muted);text-align:center;padding:12px">후기가 없어요.</div>'; return; }
+  listEl.innerHTML = data.map(r=>{
+    const date = new Date(r.created_at).toLocaleDateString('ko-KR');
+    return `<div style="border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:12px">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+        <span style="font-weight:700;color:var(--accent)">${r.course_name}</span>
+        <span style="color:var(--muted);font-size:11px">· ${r.uname||'이름없음'}(${r.yr||'?'}학번) · ${date}</span>
+        <button class="del-btn" style="margin-left:auto" onclick="adminDeleteReview('${r.id}')" title="삭제">🗑️</button>
+      </div>
+      <div style="color:var(--text2);line-height:1.5">${r.content}</div>
+    </div>`;
+  }).join('');
+}
+
+async function adminDeleteReview(id){
+  if(!confirm('이 후기를 삭제할까요? (작성자에게 알림 없이 즉시 삭제돼요)')) return;
+  const{error} = await sb.from('course_reviews').delete().eq('id',id);
+  if(error){ alert('삭제 실패: '+error.message); return; }
+  loadAdminReviews();
 }
 
 async function loadAdminCourseList(){
@@ -3299,7 +3457,7 @@ document.addEventListener('click',e=>{
   if(sp.style.display==='block'&&!sp.contains(e.target)&&!e.target.closest('[onclick*="openSemPop"]'))sp.style.display='none';
 },{capture:true});
 
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){document.getElementById('gradePopup').style.display='none';document.getElementById('semPopup').style.display='none';closeAddDirect();closeTimetable();closeAbeek();closeAdmin();closeAccount();closeHelp();}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){document.getElementById('gradePopup').style.display='none';document.getElementById('semPopup').style.display='none';closeAddDirect();closeTimetable();closeAbeek();closeAdmin();closeAccount();closeHelp();closeReview();}});
 
 // ── INIT ──
 (async()=>{
