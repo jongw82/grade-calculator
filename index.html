@@ -151,6 +151,9 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:1
 .proj-toggle.on{background:var(--purple-light);border-color:var(--purple);color:var(--purple)}
 .proj-dot{width:8px;height:8px;border-radius:50%;background:var(--border2);transition:all .15s}
 .proj-toggle.on .proj-dot{background:var(--purple);box-shadow:0 0 0 2px var(--purple-light)}
+.proj-toggle-earn:hover{border-color:var(--green)}
+.proj-toggle-earn.on{background:var(--green-light);border-color:var(--green);color:var(--green)}
+.proj-toggle-earn.on .proj-dot{background:var(--green);box-shadow:0 0 0 2px var(--green-light)}
 .proj-badge{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:700;color:var(--purple);background:var(--purple-light);border:1px solid #ddd6fe;border-radius:5px;padding:1px 5px;margin-left:5px;vertical-align:middle}
 .gc-exp{background:var(--purple-light);color:var(--purple);border-color:#ddd6fe;border-style:dashed}
 .gc-exp.gc-{background:var(--surface2);color:var(--muted);border-color:var(--border);border-style:dashed}
@@ -469,8 +472,11 @@ input[type=checkbox]{width:14px;height:14px;accent-color:var(--accent);cursor:po
   <div class="csec-title">
     <span style="display:flex;align-items:center;gap:8px">
       영역별 이수 현황
-      <button class="proj-toggle" id="projToggle" onclick="toggleProjected()" title="수강예정 과목의 예상성적을 반영해서 전체 평균/취득학점을 미리 계산해요">
+      <button class="proj-toggle" id="projToggle" onclick="toggleProjected()" title="성적을 입력한 수강예정/수강중 과목만 평균학점·취득학점에 반영해요">
         <span class="proj-dot"></span>예상성적 반영
+      </button>
+      <button class="proj-toggle proj-toggle-earn" id="projEarnToggle" onclick="toggleProjectedEarn()" title="성적 입력 여부와 상관없이 수강예정/수강중 과목 전부를 취득학점에만 반영해요 (평균학점에는 영향 없음)">
+        <span class="proj-dot"></span>예상 취득학점 반영
       </button>
     </span>
     <span class="ytag" id="ytag">—</span>
@@ -1046,6 +1052,7 @@ const PRESETS = { 2022: PRESET_2022, 2023: PRESET_2023, 2024: PRESET_2024, 2025:
 // ── STATE ──
 let C=[],yr=2022,uname='',filt='전체',statusFilt='전체',semFilt='전체',sCol=null,sAsc=true;
 let showProjected=false;
+let showProjectedEarn=false;
 let selectedIds=new Set();
 let visibleIds=[];
 let popGId=null,popSId=null,popSField=null,prevGId=null,prevGVal='-';
@@ -1104,6 +1111,14 @@ function toggleProjected(){
   showProjected=!showProjected;
   const btn=document.getElementById('projToggle');
   if(btn) btn.classList.toggle('on',showProjected);
+  updStats();
+  render();
+}
+
+function toggleProjectedEarn(){
+  showProjectedEarn=!showProjectedEarn;
+  const btn=document.getElementById('projEarnToggle');
+  if(btn) btn.classList.toggle('on',showProjectedEarn);
   updStats();
   render();
 }
@@ -1254,9 +1269,12 @@ function updStats(){
     catPlan[c.category]=(catPlan[c.category]||0)+c.credits;
   }
 
-  // 예상성적(expGrade) 반영 계산 — 수강예정/수강중 과목 중 예상성적을 입력한 것만 GPA에 가중 반영
+  // 예상성적(expGrade) 반영 계산 — 수강예정/수강중 과목 중 예상성적을 입력한 것만 GPA·취득학점에 반영
   let projGS=gs, projGC=gc, projEarn=earn, projCount=0;
   const catProjGS={...catGS}, catProjGC={...catGC}; // 분류별 예상 GPA용 (얕은 복사로 시작)
+
+  // 예상 취득학점(전체) 계산 — 성적 입력 여부와 무관하게 수강예정/수강중 전부 반영 (GPA에는 영향 없음)
+  let projEarnAll = earn;
 
   // ① 재수강예정 스왑: 원본의 실제 성적 → 사본의 예상성적으로 대체
   const retakePlanCopyOf={}; // originalId -> copy
@@ -1267,7 +1285,12 @@ function updStats(){
     if(!copy) continue;
     const eg=copy.expGrade||'-';
     const egp=GMAP[eg];
-    if(egp==null) continue; // 예상성적 미입력이면 원본 그대로 유지
+
+    // 예상 취득학점(전체) — 성적 입력 여부 무관하게 항상 스왑 (동일 과목의 재수강이므로 중복 방지)
+    if(orig.grade!=='F'&&orig.grade!=='NP') projEarnAll -= orig.credits;
+    projEarnAll += copy.credits;
+
+    if(egp==null) continue; // 예상성적 미입력이면 GPA·성적기반 취득학점 계산은 원본 그대로 유지
     // 원본 기여분 제거
     const origGp=GMAP[orig.grade];
     if(orig.grade!=='F'&&orig.grade!=='NP') projEarn -= orig.credits;
@@ -1289,10 +1312,14 @@ function updStats(){
   for(const c of projList){
     if(c.retake) continue;
     if(c.retakePlanOf) continue; // 재수강예정 사본은 ①에서 이미 반영
-    projEarn += (c.credits||0);
+
+    // 예상 취득학점(전체) — 성적 입력 여부 무관하게 항상 반영
+    projEarnAll += (c.credits||0);
+
     const eg = c.expGrade || '-';           // 안전장치: 필드 없어도 기본값
     const egp = GMAP[eg];
     if(egp!=null){
+      projEarn += (c.credits||0);
       projGS += egp*(c.credits||0);
       projGC += (c.credits||0);
       catProjGS[c.category]=(catProjGS[c.category]||0)+egp*(c.credits||0);
@@ -1302,15 +1329,25 @@ function updStats(){
   }
   const projGPA = projGC>0 ? (projGS/projGC).toFixed(4) : '—';
 
+  // 취득학점 표시값 결정: 예상 취득학점(전체) 토글이 최우선, 다음 예상성적 토글, 마지막 실제값
+  const earnDisplay = showProjectedEarn ? projEarnAll : (showProjected ? projEarn : earn);
+  const earnIsProjected = showProjectedEarn || showProjected;
+
   if(showProjected){
     setText('sGPA', projGPA);
     setHTML('sGPASub', `4.5 만점 <span class="proj-badge">예상 ${projCount}과목 반영</span>`);
-    setText('sEarn', projEarn);
-    setHTML('sEarnSub', `수강완료+예정 <span class="proj-badge">예상</span>`);
-    setText('sRem', Math.max(0,req.total-projEarn));
   } else {
     setText('sGPA', gc>0?(gs/gc).toFixed(4):'—');
     setText('sGPASub', '4.5 만점');
+  }
+
+  if(earnIsProjected){
+    setText('sEarn', earnDisplay);
+    setHTML('sEarnSub', showProjectedEarn
+      ? `수강완료+예정 <span class="proj-badge" style="background:var(--green-light);color:var(--green);border-color:#86efac">전체반영</span>`
+      : `수강완료+예정 <span class="proj-badge">예상</span>`);
+    setText('sRem', Math.max(0,req.total-earnDisplay));
+  } else {
     setText('sEarn', earn);
     setText('sEarnSub', '수강완료 기준');
     setText('sRem', Math.max(0,req.total-earn));
