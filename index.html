@@ -196,6 +196,7 @@ select:focus{border-color:var(--accent)}
 
 /* TABLE */
 .twrap{padding:0 28px 80px;overflow-x:auto}
+.mobile-scroll-hint{display:none;font-size:11px;color:var(--accent);background:var(--accent-light);border-radius:8px;padding:6px 10px;margin:10px 0 -2px;text-align:center;font-weight:600}
 table{width:100%;border-collapse:separate;border-spacing:0 3px;margin-top:12px}
 thead th{padding:7px 8px;font-size:11px;color:var(--muted);text-align:left;text-transform:uppercase;letter-spacing:.5px;font-weight:600;border-bottom:1.5px solid var(--border);white-space:nowrap;cursor:pointer;user-select:none}
 thead th:hover{color:var(--accent)}
@@ -385,6 +386,77 @@ input[type=checkbox]{width:14px;height:14px;accent-color:var(--accent);cursor:po
 
 @media(max-width:1200px){.ccards{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:900px){.sbar,.csec,.ctrl{padding:12px 16px}.ccards{grid-template-columns:repeat(2,1fr)}.twrap{padding:0 16px 80px}.header{padding:0 16px}}
+
+/* ── 모바일 대응 (768px 이하) ── */
+@media(max-width:768px){
+  .mobile-scroll-hint{display:block!important}
+  .sem-summary-cards{grid-template-columns:repeat(2,1fr)!important;gap:8px!important}
+  .header{height:auto;min-height:56px;flex-wrap:wrap;padding:8px 14px;row-gap:6px}
+  .h-sub{display:none}
+  .h-title{font-size:13px}
+  .logo{width:30px;height:30px}
+  .uchip{flex-wrap:wrap;gap:6px;justify-content:flex-end;width:100%}
+  .utext{order:1}
+  .uavatar{order:2;width:26px;height:26px;font-size:11px}
+  .timetable-btn{padding:5px 9px;font-size:11px}
+  .icon-btn{padding:5px 6px}
+  .logout-btn{padding:4px 8px;font-size:11px}
+
+  .sbar{grid-template-columns:repeat(2,1fr);gap:8px}
+  .scard{padding:11px 12px}
+  .sval{font-size:21px}
+
+  .ccards{grid-template-columns:repeat(2,1fr);gap:8px}
+  .cc-e{font-size:20px}
+
+  #catGPA{grid-template-columns:repeat(2,1fr)!important}
+
+  .ctrl{padding:10px 14px;gap:6px}
+  .ctrl > div[style*="flex:1"]{width:100%}
+  .sbox{min-width:100%;order:3}
+  .ftabs{overflow-x:auto;flex-wrap:nowrap;-webkit-overflow-scrolling:touch;padding-bottom:2px}
+  .ftab{white-space:nowrap;flex-shrink:0}
+  .yr-wrap{width:100%;justify-content:space-between}
+  .yr-wrap select{flex:1}
+
+  .twrap{padding:0 10px 90px}
+  table{min-width:760px}
+  thead th{font-size:10px;padding:6px 5px}
+  tbody td{font-size:12px;padding:7px 5px}
+  .cat-select{width:76px;font-size:10px}
+  .badge{font-size:10px;padding:1px 5px}
+  .gchip{font-size:11px;padding:3px 7px}
+  .sbtn{font-size:10px;padding:2px 6px}
+  .tsem-btn{font-size:11px;padding:3px 7px}
+
+  .modal,.tt-modal,.ab-modal{padding:16px;width:95vw;max-height:88vh}
+  .fgrid{grid-template-columns:1fr}
+  .sp,.gpick{gap:5px}
+  .spb,.gpick .gchip{font-size:12px;padding:6px 10px}
+
+  .fab{bottom:16px;right:12px}
+  .fab-btn{font-size:11px;padding:6px 11px}
+  .bulk-bar{padding:8px 12px 8px 14px;gap:8px}
+  .bulk-actions{gap:4px}
+  .bulk-btn{padding:5px 9px;font-size:11px}
+
+  .login-box{padding:28px 22px;width:92vw}
+  .ob-modal,.login-box{width:92vw}
+}
+
+/* ── 좁은 모바일 (480px 이하) ── */
+@media(max-width:480px){
+  .sbar{grid-template-columns:1fr 1fr}
+  .ccards{grid-template-columns:1fr 1fr}
+  #catGPA{grid-template-columns:1fr 1fr!important}
+  .sval{font-size:19px}
+  .h-title{font-size:12px}
+  .timetable-btn{font-size:10px;padding:4px 7px}
+  table{min-width:700px}
+  .csec-title{flex-direction:column;align-items:flex-start!important;gap:8px}
+  .csec-title > span:first-child{flex-wrap:wrap}
+}
+
 /* semester tab row special style */
 .sem-tab-row{background:var(--surface2);border-top:1px dashed var(--border);border-bottom:1px solid var(--border)}
 .sem-tab-row .ftab{font-size:11px;padding:3px 8px}
@@ -532,10 +604,11 @@ input[type=checkbox]{width:14px;height:14px;accent-color:var(--accent);cursor:po
 </div>
 
 <div class="twrap">
+  <div class="mobile-scroll-hint">👉 표를 옆으로 밀어서 더 볼 수 있어요</div>
   <!-- 학기별 요약 (전체 학기가 아닐 때만 표시) -->
   <div id="semSummary" style="display:none;margin:12px 0 4px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 20px">
     <div style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.7px;margin-bottom:10px" id="semSummaryTitle">—</div>
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px" id="semSummaryCards"></div>
+    <div class="sem-summary-cards" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px" id="semSummaryCards"></div>
   </div>
 
   <table>
