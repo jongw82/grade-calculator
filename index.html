@@ -38,6 +38,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:1
 .icon-btn{background:none;border:none;cursor:pointer;color:var(--muted);padding:4px 7px;border-radius:6px;font-size:13px;transition:all .15s;font-family:var(--font)}
 .timetable-btn{background:var(--accent-light);color:var(--accent);border:1px solid #c5d0fb;padding:6px 12px;border-radius:8px;font-weight:600;font-size:12px}
 .abeek-btn{background:var(--purple-light);color:var(--purple);border-color:#ddd6fe}
+.help-btn{background:var(--yellow-light);color:var(--yellow);border-color:#fde68a}
 .abeek-btn:hover{background:var(--purple);color:#fff}
 
 /* ── 공학인증 체크 모달 ── */
@@ -520,9 +521,11 @@ input[type=checkbox]{width:14px;height:14px;accent-color:var(--accent);cursor:po
   <div class="uchip">
     <button class="icon-btn timetable-btn abeek-btn" onclick="openAbeek()" title="공학인증(ABEEK) 요건 충족 여부 확인">🎓 공학인증</button>
     <button class="icon-btn timetable-btn" onclick="openTimetable()" title="수강예정 과목 시간표 보기">🗓️ 시간표</button>
+    <button class="icon-btn timetable-btn help-btn" onclick="openHelp()" title="도움말 보기">❓ 도움말</button>
     <div class="utext"><div class="uname" id="hName">—</div><div class="umeta" id="hMeta">—</div></div>
     <div class="uavatar" id="hAv">?</div>
     <button class="icon-btn" onclick="openOnboard(true)">✏️</button>
+    <button class="icon-btn" onclick="openAccount()" title="계정 설정">🔐</button>
     <button class="logout-btn" onclick="logout()">로그아웃</button>
   </div>
 </header>
@@ -622,6 +625,7 @@ input[type=checkbox]{width:14px;height:14px;accent-color:var(--accent);cursor:po
       <th onclick="sortBy('grade')">성적</th>
       <th>수강 상태</th>
       <th>선수강 <span style="font-size:9px;font-weight:400;color:var(--muted);font-style:normal;letter-spacing:0">(<span style="color:#1d4ed8;font-weight:700">굵</span>=필수 <span style="font-style:italic;color:var(--gray)">기</span>=권장)</span></th>
+      <th>비고</th>
       <th>재수강</th>
       <th></th>
     </tr></thead>
@@ -652,7 +656,54 @@ input[type=checkbox]{width:14px;height:14px;accent-color:var(--accent);cursor:po
   <input type="file" id="importFile" accept=".json" style="display:none" onchange="loadFile(event)">
 </div>
 
+<!-- 도움말 모달 -->
+<div class="overlay" id="helpOv" onclick="closeHelpOut(event)">
+  <div class="modal" style="width:480px">
+    <div class="mhdr">
+      <div class="mtitle">❓ 도움말</div>
+      <button class="mclose" onclick="closeHelp()">×</button>
+    </div>
+    <div id="helpContent" style="font-size:13px;line-height:1.7;color:var(--text2);white-space:pre-wrap;max-height:60vh;overflow-y:auto">불러오는 중...</div>
+  </div>
+</div>
+
+<!-- 계정 설정 모달 (비밀번호 변경 / 회원탈퇴) -->
+<div class="overlay" id="accountOv" onclick="closeAccountOut(event)">
+  <div class="modal" style="width:420px">
+    <div class="mhdr">
+      <div class="mtitle">🔐 계정 설정</div>
+      <button class="mclose" onclick="closeAccount()">×</button>
+    </div>
+
+    <div id="accountOfflineNote" style="display:none;font-size:12px;color:var(--muted);background:var(--bg);border-radius:8px;padding:10px;margin-bottom:12px">
+      오프라인 모드에서는 계정 설정을 사용할 수 없어요. 로그인 후 이용해주세요.
+    </div>
+
+    <div id="accountBody">
+      <!-- 비밀번호 변경 -->
+      <div style="border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:14px">
+        <div style="font-size:13px;font-weight:700;margin-bottom:10px">비밀번호 변경</div>
+        <div class="ob-field"><label class="flbl">새 비밀번호</label><input class="finp" id="newPw1" type="password" placeholder="6자리 이상"></div>
+        <div class="ob-field" style="margin-top:8px"><label class="flbl">새 비밀번호 확인</label><input class="finp" id="newPw2" type="password" placeholder="다시 입력"></div>
+        <div id="pwMsg" style="font-size:11px;margin-top:6px;display:none"></div>
+        <button class="btn btn-p" style="width:100%;justify-content:center;margin-top:10px" onclick="changePassword()">비밀번호 변경</button>
+      </div>
+
+      <!-- 회원탈퇴 -->
+      <div style="border:1px solid #fca5a5;border-radius:10px;padding:14px;background:var(--red-light)">
+        <div style="font-size:13px;font-weight:700;margin-bottom:6px;color:var(--red)">회원탈퇴</div>
+        <div style="font-size:11px;color:var(--text2);line-height:1.6;margin-bottom:10px">
+          탈퇴하면 저장된 학점 데이터(과목, 성적, 시간표 등)가 모두 삭제돼요.<br>
+          계정 자체는 남아있어서, <b>같은 학번+비밀번호로 다시 로그인하면</b> 새 계정처럼 처음부터 시작할 수 있어요.
+        </div>
+        <button class="btn btn-d" style="width:100%;justify-content:center" onclick="deleteAccount()">회원탈퇴 (데이터 전체 삭제)</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- 관리자 모드 패널 -->
+
 <div class="overlay" id="adminOv" onclick="closeAdminOut(event)">
   <div class="modal" style="width:640px">
     <div class="mhdr">
@@ -688,13 +739,21 @@ input[type=checkbox]{width:14px;height:14px;accent-color:var(--accent);cursor:po
         </div>
         <div class="fg"><label class="flbl">권장학기</label><input class="finp" id="adminSemester" type="text" placeholder="예: 3-1"></div>
         <div class="fg"><label class="flbl">필수선수</label><input class="finp" id="adminPrereq" type="text" placeholder="선택"></div>
+        <div class="fg full"><label class="flbl">비고</label><input class="finp" id="adminRemark" type="text" placeholder="예: 본교 e-러닝강의"></div>
       </div>
       <button class="btn btn-p" style="margin-top:10px;width:100%;justify-content:center" onclick="adminAddCourse()">이 학번 전체에 추가</button>
     </div>
 
-    <div style="font-size:12px;font-weight:700;margin-bottom:8px">현재 교과과정 목록</div>
+    <div style="font-size:12px;font-weight:700;margin-bottom:8px">현재 교과과정 목록 <span style="font-weight:400;color:var(--muted);font-size:11px">(✏️ 클릭해서 수정 — 수정 시 기존 가입자에게도 반영돼요)</span></div>
     <div id="adminCourseList" style="max-height:280px;overflow-y:auto;display:flex;flex-direction:column;gap:5px"></div>
     <div id="adminResultMsg" style="font-size:12px;margin-top:10px;padding:8px 10px;border-radius:8px;display:none"></div>
+
+    <div style="border-top:1px dashed var(--border);margin-top:18px;padding-top:16px">
+      <div style="font-size:12px;font-weight:700;margin-bottom:8px">❓ 도움말 내용 편집 <span style="font-weight:400;color:var(--muted);font-size:11px">(회원가입 직후 자동으로 뜨고, 도움말 버튼으로도 언제든 볼 수 있어요)</span></div>
+      <textarea id="adminHelpText" rows="6" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:var(--font);resize:vertical" placeholder="자유롭게 작성해주세요..."></textarea>
+      <button class="btn btn-p" style="margin-top:8px;width:100%;justify-content:center" onclick="adminSaveHelp()">도움말 저장</button>
+      <div id="adminHelpMsg" style="font-size:12px;margin-top:8px;display:none"></div>
+    </div>
   </div>
 </div>
 
@@ -1204,7 +1263,7 @@ function migrateCourses(){
   C = C.map(c => ({
     grade:'-', prevGrade:'-', expGrade:'-',
     status:'미수강', retake:false, retakePlan:false, retakePlanOf:null,
-    takeSem:'', planSem:'', dc:0, prereq:'', prereqRec:'', ttSlots:[],
+    takeSem:'', planSem:'', dc:0, prereq:'', prereqRec:'', ttSlots:[], remark:'',
     ...c
   }));
 }
@@ -1227,7 +1286,7 @@ function ldLocal(){
   migrateCourses();
 }
 
-function mkC(p,i){return{id:(Date.now()+i).toString(),grade:'-',prevGrade:'-',expGrade:'-',status:'미수강',retake:false,retakePlan:false,retakePlanOf:null,takeSem:'',planSem:'',dc:p.dc||0,prereqRec:p.prereqRec||'',ttSlots:[],...p};}
+function mkC(p,i){return{id:(Date.now()+i).toString(),grade:'-',prevGrade:'-',expGrade:'-',status:'미수강',retake:false,retakePlan:false,retakePlanOf:null,takeSem:'',planSem:'',dc:p.dc||0,prereqRec:p.prereqRec||'',ttSlots:[],remark:p.remark||'',...p};}
 
 function toggleProjected(){
   showProjected=!showProjected;
@@ -1318,6 +1377,49 @@ async function logout(){
   updAdminBtn();
 }
 
+// ── 계정 설정 (비밀번호 변경 / 회원탈퇴) ──
+function openAccount(){
+  document.getElementById('newPw1').value='';
+  document.getElementById('newPw2').value='';
+  document.getElementById('pwMsg').style.display='none';
+  const offline = isOffline;
+  document.getElementById('accountOfflineNote').style.display = offline ? 'block' : 'none';
+  document.getElementById('accountBody').style.display = offline ? 'none' : 'block';
+  document.getElementById('accountOv').classList.add('open');
+}
+function closeAccount(){ document.getElementById('accountOv').classList.remove('open'); }
+function closeAccountOut(e){ if(e.target===document.getElementById('accountOv')) closeAccount(); }
+
+function showPwMsg(msg, isErr=true){
+  const el=document.getElementById('pwMsg');
+  el.textContent=msg;
+  el.style.display='block';
+  el.style.color = isErr ? 'var(--red)' : 'var(--green)';
+}
+
+async function changePassword(){
+  const p1=document.getElementById('newPw1').value;
+  const p2=document.getElementById('newPw2').value;
+  if(!p1||!p2){ showPwMsg('비밀번호를 입력해주세요.'); return; }
+  if(p1.length<6){ showPwMsg('비밀번호는 6자리 이상이어야 해요.'); return; }
+  if(p1!==p2){ showPwMsg('비밀번호가 서로 달라요.'); return; }
+  const{error}=await sb.auth.updateUser({password:p1});
+  if(error){ showPwMsg('변경 실패: '+error.message); return; }
+  showPwMsg('✅ 비밀번호가 변경됐어요.', false);
+  document.getElementById('newPw1').value='';
+  document.getElementById('newPw2').value='';
+}
+
+async function deleteAccount(){
+  if(!currentUser) return;
+  if(!confirm('정말 탈퇴하시겠어요?\n\n저장된 학점 데이터(과목, 성적, 시간표 등)가 모두 삭제돼요.\n계정 자체는 남아있어서, 같은 학번+비밀번호로 다시 로그인하면 새 계정처럼 시작할 수 있어요.\n\n계속할까요?')) return;
+  const{error}=await sb.from('courses').delete().eq('user_id',currentUser.id);
+  if(error){ alert('삭제 실패: '+error.message); return; }
+  alert('탈퇴 처리됐어요. 그동안 이용해주셔서 감사해요.');
+  closeAccount();
+  await logout();
+}
+
 function showApp(){
   document.getElementById('loginScreen').style.display='none';
 }
@@ -1332,7 +1434,7 @@ async function loadCurriculumFromCloud(y){
     return data.map(row=>({
       name:row.name, credits:row.credits, dc:row.dc||0,
       semester:row.semester||'', category:row.category,
-      prereq:row.prereq||'', prereqRec:row.prereq_rec||'',
+      prereq:row.prereq||'', prereqRec:row.prereq_rec||'', remark:row.remark||'',
     }));
   }catch(e){
     return PRESETS[y] || null;
@@ -1362,6 +1464,7 @@ async function saveOnboard(){
   }
   sv();updH();updStats();render();document.getElementById('obOv').classList.remove('open');
   updAdminBtn();
+  if(first) showHelpOnFirstJoin();
 }
 function updH(){
   document.getElementById('hAv').textContent=uname?uname[0]:'?';
@@ -1837,6 +1940,7 @@ function render(){
       <td>${gradeCell}</td>
       <td>${statusCell}</td>
       <td>${prereqCell}</td>
+      <td style="max-width:120px">${c.remark?`<span style="font-size:11px;color:var(--text2);word-break:break-all">${c.remark}</span>`:`<span style="font-size:11px;color:var(--border2)">—</span>`}</td>
       <td>${retakeCell}</td>
       <td><button class="del-btn" onclick="delC('${c.id}')" title="삭제">🗑️</button></td>
     </tr>`;
@@ -2208,7 +2312,7 @@ function saveAdd(){
     semester:recSem,takeSem:takeSem,planSem:'',
     grade:'-',prevGrade:'-',expGrade:'-',
     status:'수강완료',   // 기본값: 수강완료
-    retake:false,retakePlan:false,retakePlanOf:null,ttSlots:[],
+    retake:false,retakePlan:false,retakePlanOf:null,ttSlots:[],remark:'',
   };
   C.push(c);sv();updStats();render();closeAddDirect();
 }
@@ -2318,10 +2422,58 @@ function openAdmin(){
   document.getElementById('adminYearSelect').value = yr;
   document.getElementById('adminOv').classList.add('open');
   document.getElementById('adminResultMsg').style.display='none';
+  document.getElementById('adminHelpMsg').style.display='none';
   loadAdminCourseList();
+  loadAdminHelpText();
 }
 function closeAdmin(){ document.getElementById('adminOv').classList.remove('open'); }
 function closeAdminOut(e){ if(e.target===document.getElementById('adminOv')) closeAdmin(); }
+
+// ── 도움말 ──
+async function fetchHelpContent(){
+  try{
+    const{data,error} = await sb.from('app_content').select('content').eq('key','help').single();
+    if(error || !data) return '아직 작성된 도움말이 없어요.';
+    return data.content || '아직 작성된 도움말이 없어요.';
+  }catch(e){
+    return '도움말을 불러오지 못했어요.';
+  }
+}
+
+async function openHelp(){
+  document.getElementById('helpOv').classList.add('open');
+  document.getElementById('helpContent').textContent = '불러오는 중...';
+  const content = await fetchHelpContent();
+  document.getElementById('helpContent').textContent = content;
+}
+function closeHelp(){ document.getElementById('helpOv').classList.remove('open'); }
+function closeHelpOut(e){ if(e.target===document.getElementById('helpOv')) closeHelp(); }
+
+// 회원가입 완료 직후 자동으로 한 번 띄우기
+async function showHelpOnFirstJoin(){
+  const content = await fetchHelpContent();
+  document.getElementById('helpContent').textContent = content;
+  document.getElementById('helpOv').classList.add('open');
+}
+
+async function loadAdminHelpText(){
+  const content = await fetchHelpContent();
+  document.getElementById('adminHelpText').value = content==='아직 작성된 도움말이 없어요.' ? '' : content;
+}
+
+async function adminSaveHelp(){
+  const text = document.getElementById('adminHelpText').value;
+  const{error} = await sb.from('app_content').update({content:text, updated_at:new Date().toISOString()}).eq('key','help');
+  const el = document.getElementById('adminHelpMsg');
+  el.style.display='block';
+  if(error){
+    el.textContent = '저장 실패: '+error.message;
+    el.style.color='var(--red)';
+  } else {
+    el.textContent = '✅ 도움말이 저장됐어요.';
+    el.style.color='var(--green)';
+  }
+}
 
 async function loadAdminCourseList(){
   const y = parseInt(document.getElementById('adminYearSelect').value);
@@ -2330,14 +2482,53 @@ async function loadAdminCourseList(){
   const{data,error} = await sb.from('curriculum_templates').select('*').eq('year',y).order('semester').order('name');
   if(error){ listEl.innerHTML = '<div style="font-size:12px;color:var(--red)">불러오기 실패</div>'; return; }
   if(!data.length){ listEl.innerHTML = '<div style="font-size:12px;color:var(--muted);text-align:center;padding:12px">등록된 과목이 없어요.</div>'; return; }
+  adminCourseCache = data; // 인라인 수정 폼에서 참조
   listEl.innerHTML = data.map(c=>`
-    <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--border);border-radius:8px;font-size:12px">
-      <span style="font-weight:700;flex:1">${c.name}</span>
-      <span style="color:var(--muted)">${c.credits}학점</span>
-      <span class="badge badge-${c.category}">${catLabel(c.category)}</span>
-      <span style="color:var(--muted);width:36px;text-align:center">${c.semester||'—'}</span>
-      <button class="del-btn" onclick="adminDeleteCourse('${c.id}','${c.name.replace(/'/g,"\\'")}',${y})" title="전체 삭제">🗑️</button>
+    <div id="adminRow-${c.id}">
+      <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--border);border-radius:8px;font-size:12px">
+        <span style="font-weight:700;flex:1">${c.name}${c.remark?`<span style="font-size:10px;color:var(--accent);margin-left:5px">📝</span>`:''}</span>
+        <span style="color:var(--muted)">${c.credits}학점</span>
+        <span class="badge badge-${c.category}">${catLabel(c.category)}</span>
+        <span style="color:var(--muted);width:36px;text-align:center">${c.semester||'—'}</span>
+        <button class="action-btn" onclick="toggleAdminEdit('${c.id}')" title="수정">✏️</button>
+        <button class="del-btn" onclick="adminDeleteCourse('${c.id}','${c.name.replace(/'/g,"\\'")}',${y})" title="전체 삭제">🗑️</button>
+      </div>
+      <div id="adminEditForm-${c.id}"></div>
     </div>`).join('');
+}
+
+let adminCourseCache = [];
+
+function toggleAdminEdit(id){
+  const el = document.getElementById(`adminEditForm-${id}`);
+  if(!el) return;
+  if(el.innerHTML){ el.innerHTML=''; return; }
+  const c = adminCourseCache.find(x=>x.id===id);
+  if(!c) return;
+  el.innerHTML = `
+    <div style="border:1px solid var(--accent);border-radius:8px;padding:10px;margin:4px 0;background:var(--accent-light)">
+      <div class="fgrid">
+        <div class="fg"><label class="flbl">학점</label><input class="finp" id="ed-credits-${id}" type="number" min="1" max="6" value="${c.credits}"></div>
+        <div class="fg"><label class="flbl">분류</label>
+          <select class="finp" id="ed-category-${id}">
+            <option value="전필"${c.category==='전필'?' selected':''}>전공필수</option>
+            <option value="전선"${c.category==='전선'?' selected':''}>전공선택</option>
+            <option value="교필"${c.category==='교필'?' selected':''}>공통교양필수</option>
+            <option value="교선"${c.category==='교선'?' selected':''}>균형교양필수</option>
+            <option value="학기초"${c.category==='학기초'?' selected':''}>학문기초교양필수</option>
+            <option value="전기"${c.category==='전기'?' selected':''}>전공기초</option>
+            <option value="기타"${c.category==='기타'?' selected':''}>교양선택</option>
+          </select>
+        </div>
+        <div class="fg"><label class="flbl">권장학기</label><input class="finp" id="ed-semester-${id}" type="text" value="${c.semester||''}"></div>
+        <div class="fg"><label class="flbl">필수선수</label><input class="finp" id="ed-prereq-${id}" type="text" value="${c.prereq||''}"></div>
+        <div class="fg full"><label class="flbl">비고</label><input class="finp" id="ed-remark-${id}" type="text" value="${(c.remark||'').replace(/"/g,'&quot;')}" placeholder="예: 본교 e-러닝강의"></div>
+      </div>
+      <div style="display:flex;gap:6px;margin-top:8px">
+        <button class="btn btn-g" style="flex:1;justify-content:center;padding:6px" onclick="toggleAdminEdit('${id}')">취소</button>
+        <button class="btn btn-p" style="flex:2;justify-content:center;padding:6px" onclick="adminSaveEdit('${id}',${c.year})">저장 (기존 가입자에게도 반영)</button>
+      </div>
+    </div>`;
 }
 
 function showAdminResult(msg, isErr=false){
@@ -2358,10 +2549,11 @@ async function adminAddCourse(){
   const category = document.getElementById('adminCategory').value;
   const semester = document.getElementById('adminSemester').value.trim();
   const prereq = document.getElementById('adminPrereq').value.trim();
+  const remark = document.getElementById('adminRemark').value.trim();
 
   // 1) 원본 테이블에 추가 (신규 가입자용)
   const{error:insErr} = await sb.from('curriculum_templates').insert({
-    year:y, name, credits, dc:0, semester, category, prereq, prereq_rec:''
+    year:y, name, credits, dc:0, semester, category, prereq, prereq_rec:'', remark
   });
   if(insErr){
     showAdminResult(`원본 추가 실패: 이미 같은 이름의 과목이 있을 수 있어요. (${insErr.message})`, true);
@@ -2380,7 +2572,7 @@ async function adminAddCourse(){
     if(already){ skipped++; continue; }
     const newCourse = {
       id: Date.now().toString()+Math.random().toString(36).slice(2),
-      name, credits, dc:0, semester, category, prereq, prereqRec:'',
+      name, credits, dc:0, semester, category, prereq, prereqRec:'', remark,
       grade:'-', prevGrade:'-', expGrade:'-', status:'미수강',
       retake:false, retakePlan:false, retakePlanOf:null,
       takeSem:'', planSem:'', ttSlots:[],
@@ -2395,6 +2587,42 @@ async function adminAddCourse(){
   document.getElementById('adminName').value='';
   document.getElementById('adminSemester').value='';
   document.getElementById('adminPrereq').value='';
+  document.getElementById('adminRemark').value='';
+}
+
+// 기존 과목 정보 수정 + 해당 학번 전체 사용자에게 동기화 (개인 진행 기록은 건드리지 않음)
+async function adminSaveEdit(templateId, y){
+  const c = adminCourseCache.find(x=>x.id===templateId);
+  if(!c) return;
+  const credits = parseInt(document.getElementById(`ed-credits-${templateId}`).value)||3;
+  const category = document.getElementById(`ed-category-${templateId}`).value;
+  const semester = document.getElementById(`ed-semester-${templateId}`).value.trim();
+  const prereq = document.getElementById(`ed-prereq-${templateId}`).value.trim();
+  const remark = document.getElementById(`ed-remark-${templateId}`).value.trim();
+  const name = c.name; // 이름은 수정 불가 (이름으로 사용자 데이터와 매칭하기 때문)
+
+  const{error:updErr} = await sb.from('curriculum_templates').update({
+    credits, category, semester, prereq, remark
+  }).eq('id', templateId);
+  if(updErr){ showAdminResult('원본 수정 실패: '+updErr.message, true); return; }
+
+  // 해당 학번 전체 사용자 중 같은 이름의 과목을 찾아 정보만 갱신 (개인 진행 기록은 유지)
+  const{data:rows, error:selErr} = await sb.from('courses').select('id,user_id,data');
+  if(selErr){ showAdminResult('사용자 목록 조회 실패: '+selErr.message, true); return; }
+
+  let synced=0, notFound=0;
+  for(const row of rows){
+    const d = row.data;
+    if(!d || d.yr !== y) continue;
+    const idx = (d.courses||[]).findIndex(cc=>cc.name===name);
+    if(idx<0){ notFound++; continue; }
+    d.courses[idx] = { ...d.courses[idx], credits, category, semester, prereq, remark };
+    const{error:updErr2} = await sb.from('courses').update({data:d}).eq('id',row.id);
+    if(!updErr2) synced++;
+  }
+  showAdminResult(`✅ '${name}' 수정 완료 — ${y}학번 ${synced}명에게 반영됨 (성적·진행상태는 그대로 유지)`);
+  toggleAdminEdit(templateId);
+  loadAdminCourseList();
 }
 
 // 원본 테이블에서 삭제 + 해당 학번 사용자 중 '미수강' 상태인 사람만 제거
@@ -2939,7 +3167,7 @@ document.addEventListener('click',e=>{
   if(sp.style.display==='block'&&!sp.contains(e.target)&&!e.target.closest('[onclick*="openSemPop"]'))sp.style.display='none';
 },{capture:true});
 
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){document.getElementById('gradePopup').style.display='none';document.getElementById('semPopup').style.display='none';closeAddDirect();closeTimetable();closeAbeek();closeAdmin();}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){document.getElementById('gradePopup').style.display='none';document.getElementById('semPopup').style.display='none';closeAddDirect();closeTimetable();closeAbeek();closeAdmin();closeAccount();closeHelp();}});
 
 // ── INIT ──
 (async()=>{
@@ -2951,6 +3179,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'){document.getElement
     if(!ok)ldLocal();
     if(!uname)openOnboard(false);
     else{updH();updStats();render();}
+    updAdminBtn();
   } else {
     document.getElementById('loginScreen').style.display='flex';
   }
