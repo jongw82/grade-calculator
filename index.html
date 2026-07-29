@@ -2591,34 +2591,41 @@ async function adminAddCourse(){
   const{data:allRows, error:selErr} = await sb.from('courses').select('id,user_id,data');
   if(selErr){ showAdminResult('사용자 목록 조회 실패: '+selErr.message, true); return; }
 
-  let totalUpdated=0, totalSkippedUsers=0, yearResults=[];
+  let yearResults=[];
   for(const y of years){
-    const{error:insErr} = await sb.from('curriculum_templates').insert({
-      year:y, name, credits, dc:0, semester, category, prereq, prereq_rec:'', remark
-    });
-    if(insErr){
-      yearResults.push(`${y}학번: 원본 추가 실패(이미 있음)`);
-      continue;
+    try{
+      const{error:insErr} = await sb.from('curriculum_templates').insert({
+        year:y, name, credits, dc:0, semester, category, prereq, prereq_rec:'', remark
+      });
+      if(insErr){
+        // 이미 있는 경우(중복키)와 그 외 오류를 구분해서 실제 메시지를 보여줌
+        const isDup = /duplicate|unique|already exists/i.test(insErr.message||'');
+        yearResults.push(`${y}학번: 원본 ${isDup?'이미 있음(건너뜀)':'추가 실패 — '+insErr.message}`);
+        if(!isDup) continue; // 진짜 오류면 이 학번은 건너뛰되, 이미 있는 경우엔 사용자 동기화는 계속 시도
+      }
+      let updated=0, skipped=0, failed=0;
+      for(const row of allRows){
+        const d = row.data;
+        if(!d) continue;
+        if(Number(d.yr) !== Number(y)) continue; // 타입 차이(문자열/숫자) 방지용 느슨한 비교
+        const already = (d.courses||[]).some(c=>c.name===name);
+        if(already){ skipped++; continue; }
+        const newCourse = {
+          id: Date.now().toString()+Math.random().toString(36).slice(2),
+          name, credits, dc:0, semester, category, prereq, prereqRec:'', remark,
+          grade:'-', prevGrade:'-', expGrade:'-', status:'미수강',
+          retake:false, retakePlan:false, retakePlanOf:null,
+          takeSem:'', planSem:'', ttSlots:[],
+        };
+        d.courses = [...(d.courses||[]), newCourse];
+        const{error:updErr} = await sb.from('courses').update({data:d}).eq('id',row.id);
+        if(!updErr) updated++; else failed++;
+      }
+      yearResults.push(`${y}학번: ${updated}명 추가${skipped?` (이미있음 ${skipped})`:''}${failed?` (실패 ${failed})`:''}`);
+    }catch(e){
+      yearResults.push(`${y}학번: 처리 중 오류 — ${e.message}`);
+      // 한 학번에서 예외가 나도 다음 학번은 계속 진행
     }
-    let updated=0, skipped=0;
-    for(const row of allRows){
-      const d = row.data;
-      if(!d || d.yr !== y) continue;
-      const already = (d.courses||[]).some(c=>c.name===name);
-      if(already){ skipped++; continue; }
-      const newCourse = {
-        id: Date.now().toString()+Math.random().toString(36).slice(2),
-        name, credits, dc:0, semester, category, prereq, prereqRec:'', remark,
-        grade:'-', prevGrade:'-', expGrade:'-', status:'미수강',
-        retake:false, retakePlan:false, retakePlanOf:null,
-        takeSem:'', planSem:'', ttSlots:[],
-      };
-      d.courses = [...(d.courses||[]), newCourse];
-      const{error:updErr} = await sb.from('courses').update({data:d}).eq('id',row.id);
-      if(!updErr) updated++;
-    }
-    totalUpdated += updated; totalSkippedUsers += skipped;
-    yearResults.push(`${y}학번: ${updated}명 추가`);
   }
   showAdminResult(`✅ '${name}' 처리 완료 — ${yearResults.join(' · ')}`);
   loadAdminCourseList();
@@ -2652,7 +2659,7 @@ async function adminSaveEdit(templateId, y){
   let synced=0, notFound=0;
   for(const row of rows){
     const d = row.data;
-    if(!d || d.yr !== y) continue;
+    if(!d || Number(d.yr) !== Number(y)) continue;
     const idx = (d.courses||[]).findIndex(cc=>cc.name===name);
     if(idx<0){ notFound++; continue; }
     d.courses[idx] = { ...d.courses[idx], credits, category, semester, prereq, remark };
@@ -2675,7 +2682,7 @@ async function deleteCourseCore(templateId, name, y){
   let removed=0, protectedCount=0;
   for(const row of rows){
     const d = row.data;
-    if(!d || d.yr !== y) continue;
+    if(!d || Number(d.yr) !== Number(y)) continue;
     const target = (d.courses||[]).find(c=>c.name===name);
     if(!target) continue;
     if(target.status!=='미수강'){ protectedCount++; continue; }
@@ -2702,7 +2709,7 @@ async function adminBulkDelete(name, years){
 
   let totalRemoved=0, totalProtected=0, results=[];
   for(const y of years){
-    const row = adminCourseCache.find(c=>c.name===name && c.year===y);
+    const row = adminCourseCache.find(c=>c.name===name && Number(c.year)===Number(y));
     if(!row){ results.push(`${y}학번: 못 찾음`); continue; }
     const r = await deleteCourseCore(row.id, name, y);
     if(r.error){ results.push(`${y}학번: 실패`); continue; }
@@ -2747,24 +2754,29 @@ async function adminSaveBulkRemark(name){
 
   let results=[], totalSynced=0;
   for(const y of years){
-    const row = adminCourseCache.find(c=>c.name===name && c.year===y);
-    if(!row) continue; // 이 학번에 없으면 건너뜀 (교집합 밖)
-    const{error:updErr} = await sb.from('curriculum_templates').update({remark}).eq('id',row.id);
-    if(updErr){ results.push(`${y}학번: 실패`); continue; }
+    try{
+      const row = adminCourseCache.find(c=>c.name===name && Number(c.year)===Number(y));
+      if(!row){ results.push(`${y}학번: 원본에 없음`); continue; }
+      const{error:updErr} = await sb.from('curriculum_templates').update({remark}).eq('id',row.id);
+      if(updErr){ results.push(`${y}학번: 원본 수정 실패 — ${updErr.message}`); continue; }
 
-    // 비고는 정보성이라 성적 유무와 무관하게 전원 반영
-    let synced=0;
-    for(const urow of allRows){
-      const d = urow.data;
-      if(!d || d.yr !== y) continue;
-      const idx = (d.courses||[]).findIndex(cc=>cc.name===name);
-      if(idx<0) continue;
-      d.courses[idx] = { ...d.courses[idx], remark };
-      const{error:updErr2} = await sb.from('courses').update({data:d}).eq('id',urow.id);
-      if(!updErr2) synced++;
+      // 비고는 정보성이라 성적 유무와 무관하게 전원 반영
+      let synced=0, failed=0, notFound=0;
+      for(const urow of allRows){
+        const d = urow.data;
+        if(!d) continue;
+        if(Number(d.yr) !== Number(y)) continue; // 타입 차이(문자열/숫자) 방지용 느슨한 비교
+        const idx = (d.courses||[]).findIndex(cc=>cc.name===name);
+        if(idx<0){ notFound++; continue; }
+        d.courses[idx] = { ...d.courses[idx], remark };
+        const{error:updErr2} = await sb.from('courses').update({data:d}).eq('id',urow.id);
+        if(!updErr2) synced++; else failed++;
+      }
+      totalSynced += synced;
+      results.push(`${y}학번: ${synced}명${notFound?` (과목없음 ${notFound})`:''}${failed?` (실패 ${failed})`:''}`);
+    }catch(e){
+      results.push(`${y}학번: 처리 중 오류 — ${e.message}`);
     }
-    totalSynced += synced;
-    results.push(`${y}학번: ${synced}명`);
   }
   showAdminResult(`✅ '${name}' 비고 일괄 수정 완료 — ${results.join(' · ')} (총 ${totalSynced}명, 성적 여부 무관하게 전원 반영)`);
   loadAdminCourseList();
