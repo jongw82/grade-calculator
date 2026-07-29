@@ -2365,19 +2365,19 @@ function checkAbeek(){
 
   const elementDetails = req.designElement.map(el=>{
     const course = findEarnedCourse(el.name);
-    if(!course) return {name:el.name, status:'미이수', credit:0};
+    if(!course) return {name:el.name, status:'미이수', credit:0, possible:el.credit};
     const rank = semRank(course.takeSem);
     if(rank==null){
       // 학기 정보 없음/계절학기 등 → 순서 판정 불가, 일단 인정하되 주의 표시
-      return {name:el.name, status:'이수(학기확인불가)', credit:el.credit, warn:true};
+      return {name:el.name, status:'이수(학기확인불가)', credit:el.credit, possible:el.credit, warn:true};
     }
     if(baseRank!=null && rank<baseRank){
-      return {name:el.name, status:'미인정(기초설계 이전 이수)', credit:0};
+      return {name:el.name, status:'미인정(기초설계 이전 이수)', credit:0, possible:el.credit};
     }
     if(earliestCapstoneRank!=null && rank>earliestCapstoneRank){
-      return {name:el.name, status:'미인정(종합설계 이후 이수)', credit:0};
+      return {name:el.name, status:'미인정(종합설계 이후 이수)', credit:0, possible:el.credit};
     }
-    return {name:el.name, status:'이수(인정)', credit:el.credit};
+    return {name:el.name, status:'이수(인정)', credit:el.credit, possible:el.credit};
   });
   const elementCreditSum = elementDetails.reduce((s,x)=>s+x.credit,0);
   const baseCredit = baseCourse ? req.designBase.credit : 0;
@@ -2446,11 +2446,12 @@ function openAbeek(){
   // 3. 전공 + 설계
   const elHtml = r.elementDetails.map(x=>{
     const ok = x.credit>0;
-    return `<div class="ab-item ${ok?'ok':(x.status==='미이수'?'no':'warn')}"><span class="dot"></span><span class="name">${x.name}</span><span class="tag">${x.status}${ok?` · 설계${x.credit}`:''}</span></div>`;
+    const creditTag = ` · 설계${ok?x.credit:x.possible}`;
+    return `<div class="ab-item ${ok?'ok':(x.status==='미이수'?'no':'warn')}"><span class="dot"></span><span class="name">${x.name}</span><span class="tag">${x.status}${creditTag}</span></div>`;
   }).join('');
   const capstoneNames = r.req.designCapstone.map(n=>{
     const found = r.capstoneCourses.some(c=>c.name===n);
-    return itemLine(n, found, '종합설계');
+    return itemLine(n, found, `종합설계 · 설계${r.req.designCapstoneCredit}`);
   }).join('');
 
   const majorHtml = `<div class="ab-section">
@@ -2463,7 +2464,7 @@ function openAbeek(){
       ${elHtml}
       ${capstoneNames}
     </div>
-    <div class="ab-note">설계 이수순서: 기초설계(또는 병행) → 요소설계 → 종합설계. 기초설계 이전이나 종합설계 이후에 이수한 요소설계는 설계학점으로 미인정돼요. 공학설계A·B는 모두 이수해도 설계학점은 3학점만 인정돼요. '학기확인불가'는 이수학기가 계절학기 등으로 기록돼 순서를 판정할 수 없어 일단 인정한 항목이에요.</div>
+    <div class="ab-note">설계 이수순서: 기초설계(또는 병행) → 요소설계 → 종합설계. 기초설계 이전이나 종합설계 이후에 이수한 요소설계는 설계학점으로 미인정돼요. <span style="color:var(--text);font-weight:700">공학설계A·B는 모두 이수해도 설계학점은 3학점만 인정돼요.</span> '학기확인불가'는 이수학기가 계절학기 등으로 기록돼 순서를 판정할 수 없어 일단 인정한 항목이에요.</div>
   </div>`;
 
   content.innerHTML = summaryHtml + libHtml + mscHtml + majorHtml;
