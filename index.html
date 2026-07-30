@@ -1998,13 +1998,22 @@ function setStatus(id,status){
   const c=C.find(x=>x.id===id);if(!c)return;
   // 이미 같은 상태면 미수강으로 토글
   if(c.status===status) status='미수강';
+  // 상태를 바꾸기 전, 현재 갖고 있던 학기값을 하나로 모아둠 (이수학기/예정학기/권장학기 중 있는 값)
+  const carrySem = c.takeSem || c.planSem || c.semester || '';
   c.status=status;
   if(status==='수강완료'){
-    if(!c.takeSem && c.semester) c.takeSem=c.semester;
+    c.takeSem = carrySem || c.takeSem || '';
     c.planSem=''; c.expGrade='-';
   }
-  if(status==='수강중'){ c.planSem=''; }
-  if(status==='수강예정'){ c.grade='-'; c.takeSem=''; }
+  if(status==='수강중'){
+    c.takeSem = carrySem || c.takeSem || '';
+    c.planSem='';
+  }
+  if(status==='수강예정'){
+    c.grade='-';
+    c.planSem = carrySem || c.planSem || '';
+    c.takeSem='';
+  }
   if(status==='미수강'){ c.grade='-'; c.takeSem=''; c.planSem=''; c.expGrade='-'; }
   sv();updStats();render();
 }
@@ -2411,10 +2420,11 @@ function bulkSetStatus(status){
   if(selectedIds.size===0) return;
   for(const id of selectedIds){
     const c=C.find(x=>x.id===id); if(!c) continue;
+    const carrySem = c.takeSem || c.planSem || c.semester || '';
     c.status=status;
-    if(status==='수강완료'){ if(!c.takeSem && c.semester) c.takeSem=c.semester; c.planSem=''; c.expGrade='-'; }
-    if(status==='수강중'){ c.planSem=''; }
-    if(status==='수강예정'){ c.grade='-'; c.takeSem=''; }
+    if(status==='수강완료'){ c.takeSem = carrySem || c.takeSem || ''; c.planSem=''; c.expGrade='-'; }
+    if(status==='수강중'){ c.takeSem = carrySem || c.takeSem || ''; c.planSem=''; }
+    if(status==='수강예정'){ c.grade='-'; c.planSem = carrySem || c.planSem || ''; c.takeSem=''; }
     if(status==='미수강'){ c.grade='-'; c.takeSem=''; c.planSem=''; c.expGrade='-'; }
   }
   sv();updStats();render();
