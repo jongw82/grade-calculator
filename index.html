@@ -407,6 +407,8 @@ input[type=checkbox]{width:14px;height:14px;accent-color:var(--accent);cursor:po
 
 /* 넓은 화면 좌우 여백: 배경·구분선은 전체 폭 유지, 내용은 최대 1400px 가운데 정렬 (900px 이하는 기존 그대로) */
 @media(min-width:901px){.header,.sbar,.csec,.ctrl,.twrap,.catgpa-sec{padding-left:max(28px,calc((100% - 1400px) / 2));padding-right:max(28px,calc((100% - 1400px) / 2))}}
+/* 넓은 화면 숫자 요약 카드: 화면을 꽉 채우지 않고 내용에 맞는 일정한 폭으로 왼쪽부터 배치 (900px 이하는 기존 그대로) */
+@media(min-width:901px){.sbar{grid-template-columns:repeat(4,220px)}.sem-summary-cards{grid-template-columns:repeat(4,220px)!important}#catGPA{grid-template-columns:repeat(auto-fill,150px)!important}}
 @media(max-width:1200px){.ccards{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:900px){.sbar,.csec,.ctrl{padding:12px 16px}.ccards{grid-template-columns:repeat(2,1fr)}.twrap{padding:0 16px 80px}.header{padding:0 16px}}
 
