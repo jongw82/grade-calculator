@@ -2357,12 +2357,19 @@ function setRetakePlanSeasonal(id, type){
 }
 
 // ── GRADE POPUP ──
+// 재수강본(재수강예정 사본, 또는 재수강 전 성적이 기록된 재수강 수강본)은 A+ 선택 불가 (최대 A0)
+function isRetakeCopy(c){
+  return !!c && (!!c.retakePlanOf || (!c.retake && !!c.prevGrade && c.prevGrade!=='-'));
+}
+function gradesFor(c){ return isRetakeCopy(c) ? GRADES.filter(g=>g!=='A+') : GRADES; }
+const RETAKE_NOTE=`<div style="width:100%;font-size:10px;color:var(--muted);margin-bottom:4px">재수강 과목은 A0까지 선택할 수 있어요</div>`;
+
 function openGradePop(id,anchor){
   popGId=id;
   const c=C.find(x=>x.id===id);
   const pop=document.getElementById('gradePopup');
   pop.style.position='';pop.style.bottom='';pop.style.transform='';
-  pop.innerHTML=GRADES.map(g=>`<span class="gchip ${gClass(g)}${c.grade===g?' cur':''}" onclick="setGrade('${id}','${g}')">${g}</span>`).join('');
+  pop.innerHTML=(isRetakeCopy(c)?RETAKE_NOTE:'')+gradesFor(c).map(g=>`<span class="gchip ${gClass(g)}${c.grade===g?' cur':''}" onclick="setGrade('${id}','${g}')">${g}</span>`).join('');
   const r=anchor.getBoundingClientRect();
   pop.style.top=(r.bottom+window.scrollY+4)+'px';
   pop.style.left=Math.min(r.left+window.scrollX,window.innerWidth-210)+'px';
@@ -2370,6 +2377,7 @@ function openGradePop(id,anchor){
 }
 function setGrade(id,g){
   const c=C.find(x=>x.id===id);if(!c)return;
+  if(g==='A+' && isRetakeCopy(c)) return;
   c.grade=g;sv();updStats();render();
   const pop=$id('gradePopup'); if(pop) pop.style.display='none';
 }
@@ -2384,7 +2392,7 @@ function openExpGradePop(id,anchor){
   pop.style.position='';pop.style.bottom='';pop.style.transform='';
   const cur = c.expGrade || '-';
   pop.innerHTML=`<div style="width:100%;font-size:10px;font-weight:700;color:var(--purple);margin-bottom:4px">예상 성적 선택</div>` +
-    GRADES.map(g=>`<span class="gchip ${gClass(g)}${cur===g?' cur':''}" onclick="setExpGrade('${id}','${g}')">${g}</span>`).join('');
+    (isRetakeCopy(c)?RETAKE_NOTE:'') + gradesFor(c).map(g=>`<span class="gchip ${gClass(g)}${cur===g?' cur':''}" onclick="setExpGrade('${id}','${g}')">${g}</span>`).join('');
   const r=anchor.getBoundingClientRect();
   pop.style.top=(r.bottom+window.scrollY+4)+'px';
   pop.style.left=Math.min(r.left+window.scrollX,window.innerWidth-210)+'px';
@@ -2392,6 +2400,7 @@ function openExpGradePop(id,anchor){
 }
 function setExpGrade(id,g){
   const c=C.find(x=>x.id===id);if(!c)return;
+  if(g==='A+' && isRetakeCopy(c)) return;
   c.expGrade=g;sv();updStats();render();
   const pop=$id('gradePopup'); if(pop) pop.style.display='none';
 }
@@ -2660,16 +2669,17 @@ function openBulkGradePop(){
   pop.style.display='flex';
 }
 function bulkSetGrade(g){
-  let doneCount=0, expCount=0, skipCount=0;
+  let doneCount=0, expCount=0, skipCount=0, retakeSkip=0;
   for(const id of selectedIds){
     const c=C.find(x=>x.id===id); if(!c) continue;
+    if(g==='A+' && isRetakeCopy(c)){ retakeSkip++; continue; }  // 재수강 과목은 A+ 불가
     if(c.status==='수강완료'){ c.grade=g; doneCount++; }
     else if(c.status==='수강예정'||c.status==='수강중'){ c.expGrade=g; expCount++; }
     else { skipCount++; }
   }
   sv();updStats();render();
   const pop=$id('gradePopup'); if(pop){ pop.style.display='none'; pop.style.bottom=''; pop.style.transform=''; }
-  if(skipCount>0) alert(`성적은 수강완료/수강중/수강예정 과목에만 적용돼요.\n적용됨: ${doneCount+expCount}개 · 건너뜀: ${skipCount}개`);
+  if(skipCount>0||retakeSkip>0) alert(`${skipCount>0?'성적은 수강완료/수강중/수강예정 과목에만 적용돼요.\n':''}${retakeSkip>0?`재수강 과목 ${retakeSkip}개는 A+를 줄 수 없어 건너뛰었어요.\n`:''}적용됨: ${doneCount+expCount}개 · 건너뜀: ${skipCount+retakeSkip}개`);
 }
 
 function clearAll(){C=[];selectedIds.clear();sv();updStats();render();}
