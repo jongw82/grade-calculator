@@ -190,6 +190,7 @@ select:focus{border-color:var(--accent)}
 .sbox{flex:1;min-width:160px;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:6px 12px;border-radius:8px;font-size:13px;transition:border-color .2s}
 .sbox:focus{border-color:var(--accent);background:var(--surface)}
 .sbox::placeholder{color:var(--muted)}
+.sbox{-webkit-appearance:none;appearance:none}
 .ftabs{display:flex;gap:4px}
 .ftab{padding:4px 10px;border-radius:999px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--muted);transition:all .15s;font-family:var(--font)}
 .ftab.on{background:var(--accent);border-color:var(--accent);color:#fff}
@@ -357,6 +358,16 @@ input[type=checkbox]{width:14px;height:14px;accent-color:var(--accent);cursor:po
 .bulk-clear{background:none;border:none;color:rgba(255,255,255,.6);font-size:15px;cursor:pointer;padding:4px 6px;border-radius:6px;transition:all .15s}
 .bulk-clear:hover{background:rgba(255,255,255,.15);color:#fff}
 @media(max-width:700px){.bulk-bar{left:12px;right:12px;transform:none;flex-wrap:wrap;bottom:16px}}
+/* 삭제 되돌리기 알림 */
+.undo-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:70;display:none;align-items:center;gap:12px;background:var(--text);color:#fff;border-radius:12px;padding:10px 10px 10px 16px;box-shadow:0 8px 28px rgba(0,0,0,.25);font-size:13px;width:max-content;max-width:calc(100vw - 24px)}
+.undo-toast.show{display:flex}
+.undo-toast.raised{bottom:88px}
+.undo-msg{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.undo-btn{background:#fff;color:var(--text);border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0}
+.undo-btn:hover{background:#eef1ff}
+.undo-x{background:none;border:none;color:#fff;opacity:.6;cursor:pointer;font-size:14px;padding:4px 6px;flex-shrink:0}
+.undo-x:hover{opacity:1}
+@media(max-width:700px){.undo-toast{left:12px;right:12px;transform:none;bottom:16px}.undo-toast .undo-msg{flex:1}.undo-toast.raised{bottom:120px}}
 
 .fab{position:fixed;bottom:24px;right:24px;display:flex;flex-direction:column;gap:7px;align-items:flex-end;z-index:50}
 .fab-btn{background:var(--surface);color:var(--text2);border:1px solid var(--border);border-radius:999px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);box-shadow:0 2px 8px rgba(0,0,0,.09);display:flex;align-items:center;gap:4px;opacity:.6;transition:all .15s}
@@ -514,11 +525,11 @@ input[type=checkbox]{width:14px;height:14px;accent-color:var(--accent);cursor:po
 
     <div style="text-align:left;margin-bottom:10px">
       <label style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px">학번</label>
-      <input id="authId" class="login-input" type="text" placeholder="예: 22011234" maxlength="20">
+      <input id="authId" class="login-input" type="text" name="username" autocomplete="username" placeholder="예: 22011234" maxlength="20">
     </div>
     <div style="text-align:left;margin-bottom:18px">
       <label style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px">비밀번호</label>
-      <input id="authPw" class="login-input" type="password" placeholder="비밀번호 입력" onkeydown="if(event.key==='Enter')doLogin()">
+      <input id="authPw" class="login-input" type="password" name="password" autocomplete="current-password" placeholder="비밀번호 입력" onkeydown="if(event.key==='Enter')doLogin()">
     </div>
 
     <button class="login-btn" id="loginBtn" onclick="doLogin()">로그인</button>
@@ -585,7 +596,7 @@ input[type=checkbox]{width:14px;height:14px;accent-color:var(--accent);cursor:po
 
 <div class="ctrl" style="gap:6px">
   <button class="btn btn-p" onclick="openAdd()">+ 과목 추가</button>
-  <input class="sbox" id="searchBox" type="text" placeholder="과목명 검색…" oninput="render()">
+  <input class="sbox" id="searchBox" type="search" name="course-search" autocomplete="off" placeholder="과목명 검색…" oninput="render()">
   <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;flex:1">
     <span style="font-size:11px;color:var(--muted);font-weight:600;white-space:nowrap">분류</span>
     <div class="ftabs" id="catTabs">
@@ -671,6 +682,13 @@ input[type=checkbox]{width:14px;height:14px;accent-color:var(--accent);cursor:po
     <button class="bulk-btn bulk-btn-grade" onclick="openBulkGradePop()">성적 설정</button>
   </div>
   <button class="bulk-clear" onclick="clearSelection()" title="선택 해제">✕</button>
+</div>
+
+<!-- 과목 삭제 직후 나타나는 되돌리기 알림 -->
+<div class="undo-toast" id="undoToast">
+  <span class="undo-msg" id="undoMsg"></span>
+  <button class="undo-btn" onclick="undoDelete()">되돌리기</button>
+  <button class="undo-x" onclick="hideUndoToast()" title="닫기">✕</button>
 </div>
 
 <div class="fab">
@@ -1408,6 +1426,7 @@ function continueOffline(){
 }
 
 async function logout(){
+  hideUndoToast();
   if(!isOffline){
     try{ await sb.auth.signOut(); }catch(e){}
   }
@@ -2372,8 +2391,23 @@ function saveAdd(){
 }
 
 // ── DELETE / BULK ──
+// 마지막 삭제 1건을 기억했다가 되돌리기 (새로고침하면 사라짐)
+let lastDeleted=null;
+let undoTimer=null;
+
 function delC(id){
   const target=C.find(x=>x.id===id);
+  // 삭제 전 상태 기억: 지워질 과목들과 원래 위치, 원본의 재수강예정 표시 여부
+  if(target){
+    const removeIds=new Set([id]);
+    if(!target.retakePlanOf && target.retakePlan) C.forEach(c=>{ if(c.retakePlanOf===id) removeIds.add(c.id); });
+    const origC=target.retakePlanOf ? C.find(x=>x.id===target.retakePlanOf) : null;
+    lastDeleted={
+      items:C.map((c,i)=>({i,c:JSON.parse(JSON.stringify(c))})).filter(x=>removeIds.has(x.c.id)),
+      origId:origC?origC.id:null,
+      origRetakePlan:origC?!!origC.retakePlan:false,
+    };
+  }
   C=C.filter(c=>c.id!==id);
   selectedIds.delete(id);
   if(target){
@@ -2386,6 +2420,40 @@ function delC(id){
       C=C.filter(c=>c.retakePlanOf!==id);
     }
   }
+  sv();updStats();render();
+  if(target) showUndoToast(target.name, lastDeleted.items.length);
+}
+
+function showUndoToast(name, count){
+  const t=$id('undoToast');
+  if(!t) return;
+  setText('undoMsg', `'${name}'${count>1?` 외 ${count-1}개(재수강예정 사본)`:''} 삭제됨`);
+  const bar=$id('bulkBar');
+  t.classList.toggle('raised', !!(bar && bar.style.display!=='none'));
+  t.classList.add('show');
+  clearTimeout(undoTimer);
+  undoTimer=setTimeout(hideUndoToast, 8000);
+}
+
+function hideUndoToast(){
+  clearTimeout(undoTimer);
+  lastDeleted=null;  // 알림이 사라지면 되돌리기도 끝
+  const t=$id('undoToast');
+  if(t) t.classList.remove('show');
+}
+
+function undoDelete(){
+  if(!lastDeleted){ hideUndoToast(); return; }
+  // 원래 위치 순서대로 다시 끼워 넣기 (이미 있는 과목은 건너뜀)
+  lastDeleted.items.slice().sort((a,b)=>a.i-b.i).forEach(({i,c})=>{
+    if(C.some(x=>x.id===c.id)) return;
+    C.splice(Math.min(i,C.length),0,c);
+  });
+  if(lastDeleted.origId){
+    const orig=C.find(x=>x.id===lastDeleted.origId);
+    if(orig) orig.retakePlan=lastDeleted.origRetakePlan;
+  }
+  hideUndoToast();
   sv();updStats();render();
 }
 
