@@ -1562,16 +1562,21 @@ async function setAdmYear(y){
 // ── 재수강 대체 판단 ──
 // 재수강예정으로 연결된 사본(retakePlanOf)이 원본 성적을 대신하는지 판단해 그 성적을 돌려줌
 //  - 사본이 수강완료 + 실제 성적 입력 → 그 성적으로 원본 대체
-//  - 사본이 수강중 + 예상성적 입력 → (예상성적 토글과 무관하게) 예상성적으로 원본 대체
-//  - 성적 미입력 / 수강예정 → 대체 안 함 (원본 성적 그대로 사용)
+//  - 사본이 수강중·수강예정 + 예상성적 입력 → (예상성적 토글과 무관하게) 예상성적으로 원본 대체
+//  - 성적 미입력 → 대체 안 함 (원본 성적 그대로 사용, 원본에 재수강 체크가 있어도 유지)
 // realOnly=true면 실제 성적(수강완료)만 인정 (공학인증용)
 function retakeTakeover(c, realOnly){
   if(!c || !c.retakePlanOf) return null;
   const orig=C.find(x=>x.id===c.retakePlanOf);
-  if(!orig || orig.retake) return null;
+  if(!orig) return null;
   if(c.status==='수강완료' && c.grade && c.grade!=='-') return c.grade;
-  if(!realOnly && c.status==='수강중' && c.expGrade && c.expGrade!=='-') return c.expGrade;
+  if(!realOnly && (c.status==='수강중'||c.status==='수강예정') && c.expGrade && c.expGrade!=='-') return c.expGrade;
   return null;
+}
+// 재수강 체크로 계산에서 빠지는지: 재수강예정 사본이 연결돼 있으면 체크와 무관하게
+// 사본 성적 입력 여부(retakeTakeover)로만 판단하므로 여기서는 빼지 않음
+function isRetakeExcluded(c){
+  return !!c.retake && !C.some(x=>x.retakePlanOf===c.id);
 }
 // 원본이 사본에 의해 대체됐는지
 function isSupersededOrig(o, realOnly){
@@ -1581,7 +1586,7 @@ function isSupersededOrig(o, realOnly){
 function isPendingDoneCopy(c, realOnly){
   if(!c.retakePlanOf || c.status!=='수강완료' || retakeTakeover(c, realOnly)) return false;
   const orig=C.find(x=>x.id===c.retakePlanOf);
-  return !!(orig && !orig.retake);
+  return !!orig;
 }
 
 // ── STATS ──
@@ -1599,7 +1604,7 @@ function updStats(){
   const catGS={},catGC={};
 
   for(const c of doneCalc){
-    if(c.retake) continue;
+    if(isRetakeExcluded(c)) continue;
     const gp=GMAP[c.grade];
     if(c.grade!=='F'&&c.grade!=='NP'){
       earn+=c.credits;
@@ -1612,8 +1617,8 @@ function updStats(){
     }
   }
 
-  // 수강중인 재수강본에 예상성적이 있으면 원본 대신 그 성적으로 계산 (토글과 무관)
-  for(const c of doing){
+  // 수강중·수강예정 재수강본에 예상성적이 있으면 원본 대신 그 성적으로 계산 (토글과 무관)
+  for(const c of projList){
     const g=retakeTakeover(c);
     if(!g) continue;
     const gp=GMAP[g];
@@ -1648,7 +1653,7 @@ function updStats(){
   const retakePlanCopyOf={}; // originalId -> copy
   for(const c of C){ if(c.retakePlanOf) retakePlanCopyOf[c.retakePlanOf]=c; }
   for(const orig of doneCalc){
-    if(orig.retake) continue;
+    if(isRetakeExcluded(orig)) continue;
     const copy=retakePlanCopyOf[orig.id];
     if(!copy) continue;
     const eg=copy.expGrade||'-';
@@ -1900,11 +1905,11 @@ function render(){
   // ── 학기 요약 ──
   const sumEl=document.getElementById('semSummary');
   if(semSel.size>0){
-    const doneRows=rows.filter(r=>r.status==='수강완료'&&!r.retake);
+    const doneRows=rows.filter(r=>r.status==='수강완료'&&!isRetakeExcluded(r));
     // 계산용: 재수강본에 대체된 원본·성적 미입력 사본 제외, 예상성적 있는 수강중 재수강본은 포함
     const doneCalcRows=doneRows.filter(r=>!isSupersededOrig(r) && !isPendingDoneCopy(r));
-    const takeoverDoing=rows.filter(r=>r.status==='수강중'&&!r.retake&&retakeTakeover(r));
-    const projRows=rows.filter(r=>(r.status==='수강예정'||r.status==='수강중')&&!r.retake&&!(r.status==='수강중'&&retakeTakeover(r)));
+    const takeoverDoing=rows.filter(r=>(r.status==='수강중'||r.status==='수강예정')&&!r.retake&&retakeTakeover(r));
+    const projRows=rows.filter(r=>(r.status==='수강예정'||r.status==='수강중')&&!r.retake&&!retakeTakeover(r));
     let semEarn=0,semGS=0,semGC=0,semCnt=rows.length,semDoneCnt=doneRows.length;
     for(const r of doneCalcRows){
       const gp=GMAP[r.grade];
@@ -1961,7 +1966,7 @@ function render(){
       </div>
       <div style="background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:10px 14px">
         <div style="font-size:10px;color:var(--muted);font-weight:600;margin-bottom:4px">등록 학점</div>
-        <div style="font-size:22px;font-weight:800;color:var(--text2)">${rows.filter(r=>!r.retake && !(r.retakePlan && rows.some(x=>x.retakePlanOf===r.id))).reduce((s,r)=>s+r.credits,0)}</div>
+        <div style="font-size:22px;font-weight:800;color:var(--text2)">${rows.filter(r=>!isRetakeExcluded(r) && !(r.retakePlan && rows.some(x=>x.retakePlanOf===r.id))).reduce((s,r)=>s+r.credits,0)}</div>
         <div style="font-size:10px;color:var(--muted);margin-top:2px">재수강 중복 제외 합계</div>
       </div>`;
     sumEl.style.display='block';
@@ -1983,7 +1988,7 @@ function render(){
     if(isRetakePlan) rowCls+=' retake-plan-row';
 
     // 재수강 체크된 과목 = 구 수강본, 계산 제외 표시
-    const isExcluded=!!c.retake;
+    const isExcluded=isRetakeExcluded(c)||isSupersededOrig(c);
     // 필수 과목(전공필수·공통교필·학문기초교필) 표시 — 균형교필 제외
     const isReqCat=c.category==='전필'||c.category==='교필'||c.category==='학기초';
 
@@ -3180,7 +3185,7 @@ function semRank(sem){
 
 // 이름으로 "실제 이수(합격)된" 과목 찾기 — 재수강 구버전(retake=true)은 제외
 function findEarnedCourse(name){
-  return C.find(c => c.name===name && c.status==='수강완료' && c.grade!=='F' && c.grade!=='NP' && !c.retake) || null;
+  return C.find(c => c.name===name && c.status==='수강완료' && c.grade!=='F' && c.grade!=='NP' && !isRetakeExcluded(c)) || null;
 }
 
 function checkAbeek(){
@@ -3210,7 +3215,7 @@ function checkAbeek(){
   // ── 3. 전공 (전필+전선 실이수학점) ──
   let majorCredits = 0;
   C.forEach(c=>{
-    if((c.category==='전필'||c.category==='전선') && c.status==='수강완료' && c.grade!=='F' && c.grade!=='NP' && !c.retake
+    if((c.category==='전필'||c.category==='전선') && c.status==='수강완료' && c.grade!=='F' && c.grade!=='NP' && !isRetakeExcluded(c)
        && !isSupersededOrig(c,true) && !isPendingDoneCopy(c,true)){  // 재수강 원본·사본 중복 방지
       majorCredits += c.credits;
     }
