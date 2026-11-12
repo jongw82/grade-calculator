@@ -136,12 +136,18 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:1
 .icon-btn:hover{background:var(--surface2);color:var(--text2)}
 
 /* SUMMARY */
-.sbar{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:16px 28px;background:var(--surface);border-bottom:1px solid var(--border)}
+.sbar{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;padding:16px 28px;background:var(--surface);border-bottom:1px solid var(--border)}
 .scard{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:13px 16px;transition:box-shadow .2s}
 .scard:hover{box-shadow:0 2px 8px rgba(74,108,247,.1);border-color:#c5cdee}
 .slabel{font-size:11px;color:var(--muted);margin-bottom:4px;font-weight:500}
 .sval{font-size:24px;font-weight:800;letter-spacing:-1px}
 .sval.gpa{color:var(--accent)}.sval.earn{color:var(--green)}.sval.rem{color:var(--orange)}
+/* 목표 학점 카드 (클릭해서 입력) */
+.sval.target{color:var(--purple)}
+.scard.target-card{cursor:pointer}
+.scard.target-card:hover .slabel{color:var(--purple)}
+.target-input{width:100%;font-size:22px;font-weight:800;letter-spacing:-1px;color:var(--purple);border:1.5px solid #c4b5fd;border-radius:8px;padding:0 8px;background:var(--surface);font-family:var(--font);outline:none}
+.target-input.bad{border-color:var(--red)}
 .ssub{font-size:11px;color:var(--muted);margin-top:3px}
 
 /* CREDIT CARDS */
@@ -202,6 +208,8 @@ select:focus{border-color:var(--accent)}
 table{width:100%;border-collapse:separate;border-spacing:0 3px;margin-top:12px}
 thead th{padding:7px 8px;font-size:11px;color:var(--muted);text-align:left;text-transform:uppercase;letter-spacing:.5px;font-weight:600;border-bottom:1.5px solid var(--border);white-space:nowrap;cursor:pointer;user-select:none}
 thead th:hover{color:var(--accent)}
+thead th{text-align:center}
+thead th:nth-child(2),thead th:nth-child(9){text-align:left}
 tbody tr{background:var(--surface);transition:box-shadow .12s}
 tbody tr:hover{box-shadow:0 2px 8px rgba(74,108,247,.07);position:relative;z-index:1}
 tbody tr.doing{background:#fffbf0}
@@ -213,6 +221,9 @@ tbody td:last-child{border-right:1px solid var(--border);border-radius:0 10px 10
 
 /* INLINE GRADE CHIPS — clearly clickable button style */
 .gcell{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+tbody td:nth-child(7) .gcell{justify-content:center}
+tbody td:nth-child(8),tbody td:nth-child(10),tbody td:nth-child(12){text-align:center}
+tbody td:nth-child(11) .retake-cell{justify-content:center}
 .gchip{
   display:inline-flex;align-items:center;justify-content:center;
   padding:4px 9px;border-radius:7px;font-size:12px;font-weight:700;
@@ -429,7 +440,7 @@ input[type=checkbox]{width:14px;height:14px;accent-color:var(--accent);cursor:po
 /* 넓은 화면 좌우 여백: 배경·구분선은 전체 폭 유지, 내용은 최대 1400px 가운데 정렬 (900px 이하는 기존 그대로) */
 @media(min-width:901px){.header,.sbar,.csec,.ctrl,.twrap,.catgpa-sec{padding-left:max(28px,calc((100% - 1400px) / 2));padding-right:max(28px,calc((100% - 1400px) / 2))}}
 /* 넓은 화면 숫자 요약 카드: 화면을 꽉 채우지 않고 내용에 맞는 일정한 폭으로 왼쪽부터 배치 (900px 이하는 기존 그대로) */
-@media(min-width:901px){.sbar{grid-template-columns:repeat(4,220px)}.sem-summary-cards{grid-template-columns:repeat(4,220px)!important}#catGPA{grid-template-columns:repeat(auto-fill,150px)!important}}
+@media(min-width:901px){.sbar{grid-template-columns:repeat(auto-fill,220px)}.sem-summary-cards{grid-template-columns:repeat(4,220px)!important}#catGPA{grid-template-columns:repeat(auto-fill,150px)!important}}
 @media(max-width:1200px){.ccards{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:900px){.sbar,.csec,.ctrl{padding:12px 16px}.ccards{grid-template-columns:repeat(2,1fr)}.twrap{padding:0 16px 80px}.header{padding:0 16px}}
 
@@ -581,6 +592,7 @@ input[type=checkbox]{width:14px;height:14px;accent-color:var(--accent);cursor:po
   <div class="scard"><div class="slabel">취득 학점</div><div class="sval earn" id="sEarn">0</div><div class="ssub" id="sEarnSub">수강완료 기준</div></div>
   <div class="scard"><div class="slabel">졸업까지 남은 학점</div><div class="sval rem" id="sRem">—</div><div class="ssub" id="sRemT">총 130학점 기준</div></div>
   <div class="scard"><div class="slabel">등록 과목 수</div><div class="sval" id="sCnt">0</div><div class="ssub" id="sCntS">—</div></div>
+  <div class="scard target-card" onclick="startTargetEdit()" title="클릭해서 목표 학점 설정"><div class="slabel">목표 학점 ✏️</div><div class="sval target" id="sTarget">—</div><div class="ssub" id="sTargetSub">클릭해서 설정</div></div>
 </div>
 
 <!-- 분류별 평균 GPA -->
@@ -1304,6 +1316,7 @@ const PRESETS = { 2022: PRESET_2022, 2023: PRESET_2023, 2024: PRESET_2024, 2025:
 
 // ── STATE ──
 let C=[],yr=2022,uname='',filt='전체',statusFilt='전체',sCol=null,sAsc=true;
+let targetGpa=null;   // 목표 학점 (사용자 지정, 없으면 null)
 // 학기별 보기: 여러 학기 동시 선택 가능. 비어 있으면 '전체 학기'
 const semSel=new Set();
 let showProjected=false;
@@ -1328,9 +1341,10 @@ async function sv(){
   localStorage.setItem('sj_c',JSON.stringify(C));
   localStorage.setItem('sj_y',yr);
   localStorage.setItem('sj_n',uname);
+  localStorage.setItem('sj_t', targetGpa==null?'':String(targetGpa));
   // 로그인 상태면 클라우드에도 저장
   if(!currentUser)return;
-  const payload={courses:C,yr,uname,updated_at:new Date().toISOString()};
+  const payload={courses:C,yr,uname,target:targetGpa,updated_at:new Date().toISOString()};
   await sb.from('courses').upsert({user_id:currentUser.id,data:payload},{onConflict:'user_id'});
 }
 
@@ -1352,6 +1366,7 @@ async function loadCloud(){
   if(d.courses)C=d.courses;
   if(d.yr){yr=parseInt(d.yr);const _ay=document.getElementById('admYear');if(_ay)_ay.value=yr;}
   if(d.uname)uname=d.uname;
+  targetGpa=parseTarget(d.target);
   migrateCourses();
   return true;
 }
@@ -1359,6 +1374,7 @@ async function loadCloud(){
 function ldLocal(){
   const c=localStorage.getItem('sj_c'),y=localStorage.getItem('sj_y'),n=localStorage.getItem('sj_n');
   if(c)C=JSON.parse(c); if(y){yr=parseInt(y);const _ay=document.getElementById('admYear');if(_ay)_ay.value=y} if(n)uname=n;
+  targetGpa=parseTarget(localStorage.getItem('sj_t'));
   migrateCourses();
 }
 
@@ -1445,7 +1461,7 @@ async function logout(){
   }
   isOffline=false;
   currentUser=null;
-  C=[];yr=2022;uname='';
+  C=[];yr=2022;uname='';targetGpa=null;
   localStorage.clear();
   document.getElementById('loginScreen').style.display='flex';
   document.getElementById('authId').value='';
@@ -1589,6 +1605,67 @@ function isPendingDoneCopy(c, realOnly){
   return !!orig;
 }
 
+// ── 목표 학점 ──
+// 소수점 4자리까지 저장, 표시는 끝의 0을 지우되 최소 2자리 (4.0000→4.00, 4.0050→4.005)
+function fmtGpa(x){
+  const [i,d='']=Number(x).toFixed(4).replace(/0+$/,'').split('.');
+  return i+'.'+d.padEnd(2,'0');
+}
+function parseTarget(v){
+  if(v===null||v===undefined||v==='') return null;
+  const n=Number(v);
+  if(!isFinite(n)||n<0||n>4.5) return null;
+  return Math.round(n*10000)/10000;
+}
+let targetEditing=false, lastCurGpa=null;
+function updTarget(cur){
+  lastCurGpa=cur;
+  if(targetEditing) return;
+  if(targetGpa==null){
+    setText('sTarget','—'); setText('sTargetSub','클릭해서 설정');
+    return;
+  }
+  setText('sTarget', fmtGpa(targetGpa));
+  if(cur==null){ setText('sTargetSub','4.5 만점'); return; }
+  const gap=Math.round((targetGpa-cur)*10000)/10000;
+  setHTML('sTargetSub', gap>0
+    ? `현재보다 <b style="color:var(--purple)">+${fmtGpa(gap)}</b> 필요`
+    : `<b style="color:var(--green)">목표 달성 ✓</b>`);
+}
+function startTargetEdit(){
+  if(targetEditing) return;
+  targetEditing=true;
+  const el=$id('sTarget'); if(!el){targetEditing=false;return;}
+  el.innerHTML=`<input class="target-input" id="targetInput" type="number" inputmode="decimal" step="0.0001" min="0" max="4.5" placeholder="예: 4.0000" value="${targetGpa==null?'':targetGpa.toFixed(4)}">`;
+  setText('sTargetSub','Enter로 저장 · 비우면 해제');
+  const inp=$id('targetInput');
+  inp.addEventListener('click',e=>e.stopPropagation());
+  inp.addEventListener('keydown',e=>{
+    if(e.key==='Enter'){ e.preventDefault(); finishTargetEdit(true); }
+    else if(e.key==='Escape'){ finishTargetEdit(false); }
+  });
+  inp.addEventListener('blur',()=>finishTargetEdit(true));
+  inp.focus(); inp.select();
+}
+function finishTargetEdit(save){
+  if(!targetEditing) return;
+  const inp=$id('targetInput');
+  if(save && inp){
+    const raw=inp.value.trim();
+    if(raw===''){ targetGpa=null; }
+    else{
+      const v=parseTarget(raw);
+      if(v==null){ inp.classList.add('bad'); setText('sTargetSub','0 ~ 4.5 사이로 입력하세요'); inp.focus(); return; }
+      targetGpa=v;
+    }
+    targetEditing=false;
+    sv();
+  } else {
+    targetEditing=false;
+  }
+  updTarget(lastCurGpa);
+}
+
 // ── STATS ──
 function updStats(){
   const req=GRAD[yr]||GRAD[2022];
@@ -1713,6 +1790,7 @@ function updStats(){
     setText('sGPA', gc>0?(gs/gc).toFixed(4):'—');
     setText('sGPASub', '4.5 만점');
   }
+  updTarget(showProjected ? (projGC>0?projGS/projGC:null) : (gc>0?gs/gc:null));
 
   if(earnIsProjected){
     setText('sEarn', earnDisplay);
@@ -3600,13 +3678,13 @@ function removeTtSlot(id, idx){
 
 // ── IMPORT / EXPORT ──
 function exportData(){
-  const b=new Blob([JSON.stringify({courses:C,yr,uname,at:new Date().toISOString()},null,2)],{type:'application/json'});
+  const b=new Blob([JSON.stringify({courses:C,yr,uname,target:targetGpa,at:new Date().toISOString()},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=`학점계산기_${uname}_${yr}학번.json`;a.click();
 }
 function loadFile(e){
   const f=e.target.files[0];if(!f)return;
   const r=new FileReader();
-  r.onload=ev=>{try{const d=JSON.parse(ev.target.result);if(d.courses)C=d.courses;if(d.yr){yr=d.yr;const _ay=document.getElementById('admYear');if(_ay)_ay.value=yr;}if(d.uname)uname=d.uname;migrateCourses();sv();updH();updStats();render();alert('✅ 불러오기 완료');}catch{alert('❌ 파일 형식 오류');}};
+  r.onload=ev=>{try{const d=JSON.parse(ev.target.result);if(d.courses)C=d.courses;if(d.yr){yr=d.yr;const _ay=document.getElementById('admYear');if(_ay)_ay.value=yr;}if(d.uname)uname=d.uname;if(d.target!==undefined)targetGpa=parseTarget(d.target);migrateCourses();sv();updH();updStats();render();alert('✅ 불러오기 완료');}catch{alert('❌ 파일 형식 오류');}};
   r.readAsText(f);e.target.value='';
 }
 
