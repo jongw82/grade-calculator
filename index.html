@@ -638,17 +638,17 @@ input[type=checkbox]{width:14px;height:14px;accent-color:var(--accent);cursor:po
 <div class="ctrl sem-tab-row" style="gap:6px;padding-top:8px;padding-bottom:8px;border-top:none">
   <span style="font-size:11px;color:var(--muted);font-weight:600;white-space:nowrap;padding-right:4px">학기별 보기</span>
   <div class="ftabs" id="semTabs">
-    <button class="ftab on" onclick="setSemF('전체',this)">전체 학기</button>
-    <button class="ftab" onclick="setSemF('1-1',this)">1-1</button>
-    <button class="ftab" onclick="setSemF('1-2',this)">1-2</button>
-    <button class="ftab" onclick="setSemF('2-1',this)">2-1</button>
-    <button class="ftab" onclick="setSemF('2-2',this)">2-2</button>
-    <button class="ftab" onclick="setSemF('3-1',this)">3-1</button>
-    <button class="ftab" onclick="setSemF('3-2',this)">3-2</button>
-    <button class="ftab" onclick="setSemF('4-1',this)">4-1</button>
-    <button class="ftab" onclick="setSemF('4-2',this)">4-2</button>
-    <button class="ftab" onclick="setSemF('계절',this)">계절학기</button>
-    <button class="ftab" onclick="setSemF('미지정',this)">미지정</button>
+    <button class="ftab on" data-sem="전체" onclick="setSemF('전체',this)">전체 학기</button>
+    <button class="ftab" data-sem="1-1" onclick="setSemF('1-1',this)">1-1</button>
+    <button class="ftab" data-sem="1-2" onclick="setSemF('1-2',this)">1-2</button>
+    <button class="ftab" data-sem="2-1" onclick="setSemF('2-1',this)">2-1</button>
+    <button class="ftab" data-sem="2-2" onclick="setSemF('2-2',this)">2-2</button>
+    <button class="ftab" data-sem="3-1" onclick="setSemF('3-1',this)">3-1</button>
+    <button class="ftab" data-sem="3-2" onclick="setSemF('3-2',this)">3-2</button>
+    <button class="ftab" data-sem="4-1" onclick="setSemF('4-1',this)">4-1</button>
+    <button class="ftab" data-sem="4-2" onclick="setSemF('4-2',this)">4-2</button>
+    <button class="ftab" data-sem="계절" onclick="setSemF('계절',this)">계절학기</button>
+    <button class="ftab" data-sem="미지정" onclick="setSemF('미지정',this)">미지정</button>
   </div>
 </div>
 
@@ -1303,7 +1303,9 @@ const PRESET_2026 = [
 const PRESETS = { 2022: PRESET_2022, 2023: PRESET_2023, 2024: PRESET_2024, 2025: PRESET_2025, 2026: PRESET_2026 };
 
 // ── STATE ──
-let C=[],yr=2022,uname='',filt='전체',statusFilt='전체',semFilt='전체',sCol=null,sAsc=true;
+let C=[],yr=2022,uname='',filt='전체',statusFilt='전체',sCol=null,sAsc=true;
+// 학기별 보기: 여러 학기 동시 선택 가능. 비어 있으면 '전체 학기'
+const semSel=new Set();
 let showProjected=false;
 let showProjectedEarn=false;
 let selectedIds=new Set();
@@ -1783,9 +1785,14 @@ function setStatusF(s,el){
   render();
 }
 function setSemF(s,el){
-  semFilt=s;
-  document.getElementById('semTabs').querySelectorAll('.ftab').forEach(t=>t.classList.remove('on'));
-  el.classList.add('on');
+  // '전체 학기'를 누르면 선택 해제, 학기 탭은 누를 때마다 선택/해제 (여러 개 동시 선택 가능)
+  if(s==='전체') semSel.clear();
+  else if(semSel.has(s)) semSel.delete(s);
+  else semSel.add(s);
+  document.getElementById('semTabs').querySelectorAll('.ftab').forEach(t=>{
+    const k=t.dataset.sem;
+    t.classList.toggle('on', k==='전체' ? semSel.size===0 : semSel.has(k));
+  });
   updSemTabCounts();
   render();
 }
@@ -1834,11 +1841,9 @@ function render(){
 
     // 학기 필터
     let sf=true;
-    if(semFilt!=='전체'){
+    if(semSel.size>0){
       const sem=semOf(c);
-      if(semFilt==='계절') sf=sem.includes('계절');
-      else if(semFilt==='미지정') sf=!sem;
-      else sf=sem===semFilt;
+      sf=[...semSel].some(k=> k==='계절' ? sem.includes('계절') : k==='미지정' ? !sem : sem===k);
     }
     return ms&&mf&&statf&&sf;
   });
@@ -1851,7 +1856,7 @@ function render(){
 
   // ── 학기 요약 ──
   const sumEl=document.getElementById('semSummary');
-  if(semFilt!=='전체'){
+  if(semSel.size>0){
     const doneRows=rows.filter(r=>r.status==='수강완료'&&!r.retake);
     const projRows=rows.filter(r=>(r.status==='수강예정'||r.status==='수강중')&&!r.retake);
     let semEarn=0,semGS=0,semGC=0,semCnt=rows.length,semDoneCnt=doneRows.length;
@@ -1881,7 +1886,11 @@ function render(){
     const earnSub   = showProjected ? `수강완료+예정 <span class="proj-badge" style="margin-left:2px">예상</span>` : '수강완료 기준';
     const gpaSub    = showProjected ? `4.5 만점 <span class="proj-badge" style="margin-left:2px">예상 ${semProjCount}과목</span>` : '4.5 만점';
 
-    const semLabel=semFilt==='계절'?'계절학기':semFilt==='미지정'?'미지정':`${semFilt}학기`;
+    const SEM_ORDER=['1-1','1-2','2-1','2-2','3-1','3-2','4-1','4-2','계절','미지정'];
+    const selKeys=SEM_ORDER.filter(k=>semSel.has(k));
+    const semLabel=selKeys.length===1
+      ? (selKeys[0]==='계절'?'계절학기':selKeys[0]==='미지정'?'미지정':`${selKeys[0]}학기`)
+      : selKeys.map(k=>k==='계절'?'계절학기':k).join(' · ');
     document.getElementById('semSummaryTitle').textContent=`${semLabel} 현황`;
     document.getElementById('semSummaryCards').innerHTML=`
       <div style="background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:10px 14px">
