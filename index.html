@@ -255,11 +255,8 @@ tbody td:last-child{border-right:1px solid var(--border);border-radius:0 10px 10
 .status-select.st-doing{background:var(--blue-light);color:var(--blue);border-color:#7dd3fc}
 .status-select.st-plan{background:var(--purple-light);color:var(--purple);border-color:#c4b5fd}
 .status-select option{background:#fff;color:var(--text)}
-/* 필수 과목 강의명 빨간 점선 테두리 (전공필수·공통교필·학문기초교필) */
-.req-name{border:1.5px dashed var(--red);border-radius:5px;padding:1px 5px}
-/* 학점포기 체크박스 */
-.cb.ff.on{background:var(--red);border-color:var(--red)}
-.cb.off{opacity:.35;cursor:not-allowed}
+/* 필수 과목(전공필수·공통교필·학문기초교필) 강의명 칸 왼쪽 색 띠 */
+tbody td.req-td{box-shadow:inset 3px 0 0 #f87171}
 /* 예정학기 인라인 선택 버튼 */
 .plan-sem-wrap{display:flex;flex-direction:column;gap:3px}
 .plan-sem-row{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-top:3px}
@@ -652,7 +649,6 @@ input[type=checkbox]{width:14px;height:14px;accent-color:var(--accent);cursor:po
     <button class="ftab" onclick="setSemF('4-2',this)">4-2</button>
     <button class="ftab" onclick="setSemF('계절',this)">계절학기</button>
     <button class="ftab" onclick="setSemF('미지정',this)">미지정</button>
-    <button class="ftab" onclick="setSemF('학점포기',this)">학점포기</button>
   </div>
 </div>
 
@@ -677,7 +673,6 @@ input[type=checkbox]{width:14px;height:14px;accent-color:var(--accent);cursor:po
       <th>선수강 <span style="font-size:9px;font-weight:400;color:var(--muted);font-style:normal;letter-spacing:0">(<span style="color:#1d4ed8;font-weight:700">굵</span>=필수 <span style="font-style:italic;color:var(--gray)">기</span>=권장)</span></th>
       <th>비고</th>
       <th>재수강</th>
-      <th>학점포기</th>
       <th></th>
     </tr></thead>
     <tbody id="tBody"></tbody>
@@ -699,9 +694,6 @@ input[type=checkbox]{width:14px;height:14px;accent-color:var(--accent);cursor:po
   </div>
   <button class="bulk-clear" onclick="clearSelection()" title="선택 해제">✕</button>
 </div>
-
-<!-- 짧은 안내 알림 (학점포기 한도 초과 등) -->
-<div class="undo-toast" id="noticeToast"><span class="undo-msg" id="noticeMsg"></span></div>
 
 <!-- 과목 삭제 직후 나타나는 되돌리기 알림 -->
 <div class="undo-toast" id="undoToast">
@@ -1344,7 +1336,7 @@ async function sv(){
 function migrateCourses(){
   C = C.map(c => ({
     grade:'-', prevGrade:'-', expGrade:'-',
-    status:'미수강', retake:false, retakePlan:false, retakePlanOf:null, forfeit:false,
+    status:'미수강', retake:false, retakePlan:false, retakePlanOf:null,
     takeSem:'', planSem:'', dc:0, prereq:'', prereqRec:'', ttSlots:[], remark:'',
     ...c
   }));
@@ -1368,7 +1360,7 @@ function ldLocal(){
   migrateCourses();
 }
 
-function mkC(p,i){return{id:(Date.now()+i).toString(),grade:'-',prevGrade:'-',expGrade:'-',status:'미수강',retake:false,retakePlan:false,retakePlanOf:null,forfeit:false,takeSem:'',planSem:'',dc:p.dc||0,prereqRec:p.prereqRec||'',ttSlots:[],remark:p.remark||'',...p};}
+function mkC(p,i){return{id:(Date.now()+i).toString(),grade:'-',prevGrade:'-',expGrade:'-',status:'미수강',retake:false,retakePlan:false,retakePlanOf:null,takeSem:'',planSem:'',dc:p.dc||0,prereqRec:p.prereqRec||'',ttSlots:[],remark:p.remark||'',...p};}
 
 function toggleProjected(){
   showProjected=!showProjected;
@@ -1568,9 +1560,7 @@ async function setAdmYear(y){
 // ── STATS ──
 function updStats(){
   const req=GRAD[yr]||GRAD[2022];
-  const done=C.filter(c=>c.status==='수강완료'&&!c.forfeit);  // 학점포기 과목은 모든 계산에서 제외
-  // 원본이 학점포기된 재수강예정 사본은 스왑 대상이 없으므로 일반 수강예정처럼 계산
-  const forfeitIds=new Set(C.filter(c=>c.forfeit).map(c=>c.id));
+  const done=C.filter(c=>c.status==='수강완료');
   const doing=C.filter(c=>c.status==='수강중');
   const planned=C.filter(c=>c.status==='수강예정');
   const projList=[...planned, ...doing]; // 예상성적 대상: 수강예정 + 수강중
@@ -1597,7 +1587,7 @@ function updStats(){
   let planEarn=0;
   for(const c of projList){
     if(c.retake) continue;
-    if(c.retakePlanOf && !forfeitIds.has(c.retakePlanOf)) continue; // 원본과 중복 계산 방지
+    if(c.retakePlanOf) continue; // 원본과 중복 계산 방지
     planEarn+=c.credits;
     catPlan[c.category]=(catPlan[c.category]||0)+c.credits;
   }
@@ -1644,7 +1634,7 @@ function updStats(){
   // ② 일반 수강예정/수강중 (재수강예정 사본이 아닌 것들만 — 사본은 위에서 이미 처리)
   for(const c of projList){
     if(c.retake) continue;
-    if(c.retakePlanOf && !forfeitIds.has(c.retakePlanOf)) continue; // 재수강예정 사본은 ①에서 이미 반영
+    if(c.retakePlanOf) continue; // 재수강예정 사본은 ①에서 이미 반영
 
     // 예상 취득학점(전체) — 성적 입력 여부 무관하게 항상 반영
     projEarnAll += (c.credits||0);
@@ -1766,7 +1756,7 @@ function catLabel(cat){ return CAT_LABEL[cat]||cat; }
 // ── PREREQ ──
 // Returns array of {name, ok, isReq} for each prereq entry
 function prereqList(c){
-  const dset=new Set(C.filter(x=>x.status==='수강완료'&&!x.forfeit).map(x=>x.name));
+  const dset=new Set(C.filter(x=>x.status==='수강완료').map(x=>x.name));
   const items=[];
   if(c.prereq){
     c.prereq.split(/[,，、]/).map(s=>s.trim()).filter(Boolean)
@@ -1802,16 +1792,15 @@ function setSemF(s,el){
 
 // update badge counts on semester tabs
 function updSemTabCounts(){
-  const semKeys=['전체','1-1','1-2','2-1','2-2','3-1','3-2','4-1','4-2','계절','미지정','학점포기'];
+  const semKeys=['전체','1-1','1-2','2-1','2-2','3-1','3-2','4-1','4-2','계절','미지정'];
   const tabs=document.getElementById('semTabs').querySelectorAll('.ftab');
   tabs.forEach((btn,i)=>{
     const s=semKeys[i];
     let cnt;
     if(s==='전체') cnt=C.length;
-    else if(s==='학점포기') cnt=C.filter(c=>c.forfeit).length;
-    else if(s==='계절') cnt=C.filter(c=>!c.forfeit&&semOf(c).includes('계절')).length;
-    else if(s==='미지정') cnt=C.filter(c=>!c.forfeit&&!semOf(c)).length;
-    else cnt=C.filter(c=>!c.forfeit&&semOf(c)===s).length;
+    else if(s==='계절') cnt=C.filter(c=>semOf(c).includes('계절')).length;
+    else if(s==='미지정') cnt=C.filter(c=>!semOf(c)).length;
+    else cnt=C.filter(c=>semOf(c)===s).length;
     const base=btn.textContent.replace(/\s*\(\d+\)$/,'').trim();
     btn.textContent=cnt>0?`${base} (${cnt})`:base;
   });
@@ -1845,12 +1834,9 @@ function render(){
 
     // 학기 필터
     let sf=true;
-    if(semFilt==='학점포기') sf=!!c.forfeit;
-    else if(semFilt!=='전체'){
-      // 학점포기 과목은 원래 학기 탭에서 빠지고 학점포기 탭으로 이동
+    if(semFilt!=='전체'){
       const sem=semOf(c);
-      if(c.forfeit) sf=false;
-      else if(semFilt==='계절') sf=sem.includes('계절');
+      if(semFilt==='계절') sf=sem.includes('계절');
       else if(semFilt==='미지정') sf=!sem;
       else sf=sem===semFilt;
     }
@@ -1865,25 +1851,8 @@ function render(){
 
   // ── 학기 요약 ──
   const sumEl=document.getElementById('semSummary');
-  if(semFilt==='학점포기'){
-    const ffAll=C.filter(c=>c.forfeit);
-    const ffCred=ffAll.reduce((s,c)=>s+(c.credits||0),0);
-    let ffGS=0,ffGC=0;
-    for(const r of ffAll){ const gp=GMAP[r.grade]; if(gp!=null){ ffGS+=gp*r.credits; ffGC+=r.credits; } }
-    const card=(l,v,sub,color)=>`<div style="background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:10px 14px">
-        <div style="font-size:10px;color:var(--muted);font-weight:600;margin-bottom:4px">${l}</div>
-        <div style="font-size:22px;font-weight:800;color:${color}">${v}</div>
-        <div style="font-size:10px;color:var(--muted);margin-top:2px">${sub}</div>
-      </div>`;
-    document.getElementById('semSummaryTitle').textContent='학점포기 현황';
-    document.getElementById('semSummaryCards').innerHTML=
-      card('포기 과목 수', ffAll.length, '모든 계산에서 제외', 'var(--text)')+
-      card('포기 학점', `${ffCred} / ${FORFEIT_MAX}`, `최대 ${FORFEIT_MAX}학점`, 'var(--red)')+
-      card('추가 포기 가능', Math.max(0,FORFEIT_MAX-ffCred), '학점', 'var(--text2)')+
-      card('포기 과목 평균', ffGC>0?(ffGS/ffGC).toFixed(2):'—', '포기 전 성적 기준', 'var(--muted)');
-    sumEl.style.display='block';
-  } else if(semFilt!=='전체'){
-    const doneRows=rows.filter(r=>r.status==='수강완료'&&!r.retake&&!r.forfeit);
+  if(semFilt!=='전체'){
+    const doneRows=rows.filter(r=>r.status==='수강완료'&&!r.retake);
     const projRows=rows.filter(r=>(r.status==='수강예정'||r.status==='수강중')&&!r.retake);
     let semEarn=0,semGS=0,semGC=0,semCnt=rows.length,semDoneCnt=doneRows.length;
     for(const r of doneRows){
@@ -1955,9 +1924,7 @@ function render(){
 
     // 재수강 체크된 과목 = 구 수강본, 계산 제외 표시
     const isExcluded=!!c.retake;
-    const isForfeit=!!c.forfeit;
-    const isStruck=isExcluded||isForfeit;
-    // 필수 과목(전공필수·공통교필·학문기초교필) 강의명 빨간 점선 — 균형교필 제외
+    // 필수 과목(전공필수·공통교필·학문기초교필) 표시 — 균형교필 제외
     const isReqCat=c.category==='전필'||c.category==='교필'||c.category==='학기초';
 
     // grade cell
@@ -1987,12 +1954,6 @@ function render(){
     const statusCell=`<select class="status-select${stCls}" onchange="setStatus('${c.id}',this.value)" title="수강 상태 변경">
       ${['수강완료','수강중','수강예정','미수강'].map(s=>`<option value="${s}"${c.status===s?' selected':''}>${s}</option>`).join('')}
     </select>`;
-
-    // 학점포기 체크박스: 수강완료 과목만 가능
-    const forfeitCell=`<div class="retake-cell">
-      <div class="cb ff${isForfeit?' on':''}${(!isDone&&!isForfeit)?' off':''}" onclick="toggleForfeit('${c.id}')" title="${isForfeit?'학점포기 해제 (원래 학기로 돌아가요)':isDone?'학점포기 (최대 '+FORFEIT_MAX+'학점)':'수강완료 과목만 학점포기할 수 있어요'}"></div>
-      ${isForfeit?`<span style="font-size:11px;color:var(--red);font-weight:600">포기</span>`:''}
-    </div>`;
 
     // 이수학기: 완료·수강중만 / 예정학기: 수강예정만
     const canTakeSem = isDone || isDoing;
@@ -2047,8 +2008,8 @@ function render(){
 
     return`<tr class="${rowCls}">
       <td class="chk-col"><input type="checkbox" class="rchk" data-id="${c.id}" ${selectedIds.has(c.id)?'checked':''} onchange="toggleRowSelect('${c.id}',this.checked)"></td>
-      <td style="font-weight:600;min-width:120px;${isStruck?'text-decoration:line-through;color:var(--muted)':''}"><span class="${isReqCat?'req-name':''}">${c.name}</span><button class="review-btn" onclick="openReview('${c.name.replace(/'/g,"\\'")}')" title="강의 후기 보기/작성">강의후기</button>${isExcluded?'<span style="font-size:9px;background:#fee2e2;color:var(--red);border-radius:4px;padding:1px 4px;margin-left:4px;font-weight:600;vertical-align:middle">계산제외</span>':''}${c.retakePlanOf?'<span style="font-size:9px;background:#ede9fe;color:var(--purple);border-radius:4px;padding:1px 4px;margin-left:4px;font-weight:600;vertical-align:middle">재수강예정 사본</span>':''}${isForfeit?'<span style="font-size:9px;background:#fee2e2;color:var(--red);border-radius:4px;padding:1px 4px;margin-left:4px;font-weight:600;vertical-align:middle">학점포기</span>':''}</td>
-      <td style="font-weight:700;text-align:center;${isStruck?'color:var(--muted);text-decoration:line-through':''}">${c.credits}</td>
+      <td class="${isReqCat?'req-td':''}" title="${isReqCat?'필수 과목':''}" style="font-weight:600;min-width:120px;${isExcluded?'text-decoration:line-through;color:var(--muted)':''}">${c.name}<button class="review-btn" onclick="openReview('${c.name.replace(/'/g,"\\'")}')" title="강의 후기 보기/작성">강의후기</button>${isExcluded?'<span style="font-size:9px;background:#fee2e2;color:var(--red);border-radius:4px;padding:1px 4px;margin-left:4px;font-weight:600;vertical-align:middle">계산제외</span>':''}${c.retakePlanOf?'<span style="font-size:9px;background:#ede9fe;color:var(--purple);border-radius:4px;padding:1px 4px;margin-left:4px;font-weight:600;vertical-align:middle">재수강예정 사본</span>':''}</td>
+      <td style="font-weight:700;text-align:center;${isExcluded?'color:var(--muted);text-decoration:line-through':''}">${c.credits}</td>
       <td style="color:var(--muted);text-align:center;font-size:12px">${c.semester||'—'}</td>
       <td style="text-align:center">${semCell}</td>
       <td style="text-align:center">${catCell}</td>
@@ -2057,7 +2018,6 @@ function render(){
       <td>${prereqCell}</td>
       <td style="max-width:120px">${c.remark?`<span style="font-size:11px;color:var(--text2);word-break:break-all">${c.remark}</span>`:`<span style="font-size:11px;color:var(--border2)">—</span>`}</td>
       <td>${retakeCell}</td>
-      <td>${forfeitCell}</td>
       <td><button class="del-btn" onclick="delC('${c.id}')" title="삭제">🗑️</button></td>
     </tr>`;
   }).join('');
@@ -2091,37 +2051,7 @@ function setStatus(id,status){
     c.takeSem='';
   }
   if(status==='미수강'){ c.grade='-'; c.takeSem=''; c.planSem=''; c.expGrade='-'; }
-  if(status!=='수강완료') c.forfeit=false;  // 학점포기는 수강완료 과목만
   sv();updStats();render();
-}
-
-// ── 학점포기 ──
-// 체크하면 학기 탭에서 '학점포기' 탭으로 옮겨지고 모든 계산에서 빠짐. 해제하면 원래 학기로 돌아감.
-const FORFEIT_MAX=6;
-let noticeTimer=null;
-function showNotice(msg){
-  const t=$id('noticeToast'); if(!t) return;
-  setText('noticeMsg', msg);
-  const bar=$id('bulkBar');
-  t.classList.toggle('raised', !!(bar && bar.style.display!=='none'));
-  t.classList.add('show');
-  clearTimeout(noticeTimer);
-  noticeTimer=setTimeout(()=>t.classList.remove('show'), 3500);
-}
-function toggleForfeit(id){
-  const c=C.find(x=>x.id===id); if(!c) return;
-  if(c.forfeit){
-    c.forfeit=false;
-  } else {
-    if(c.status!=='수강완료'){ showNotice('수강완료 과목만 학점포기할 수 있어요.'); return; }
-    const used=C.filter(x=>x.forfeit).reduce((s,x)=>s+(x.credits||0),0);
-    if(used+(c.credits||0)>FORFEIT_MAX){
-      showNotice(`학점포기는 최대 ${FORFEIT_MAX}학점까지예요. (현재 ${used}학점 포기 중, 이 과목 ${c.credits}학점)`);
-      return;
-    }
-    c.forfeit=true;
-  }
-  sv();updStats();updSemTabCounts();render();
 }
 
 // ── RETAKE ──
@@ -2174,7 +2104,6 @@ function addRetakeCourse(origId, takeSem){
     id:Date.now().toString(),
     retake:false,
     retakePlan:false,
-    forfeit:false,
     prevGrade:orig.grade,   // 이전 성적 = 원본 성적
     grade:'-',
     status:'수강완료',
@@ -2197,7 +2126,7 @@ function skipRetakeSem(){
   const newC={
     ...orig,
     id:Date.now().toString(),
-    retake:false,retakePlan:false,forfeit:false,
+    retake:false,retakePlan:false,
     prevGrade:orig.grade,
     grade:'-',
     status:'수강완료',
@@ -2244,7 +2173,6 @@ function toggleRetakePlan(id){
       retakePlanOf:id,
       retakePlan:true,
       retake:false,
-      forfeit:false,
       status:'수강예정',
       grade:'-',
       expGrade:'-',
@@ -2469,7 +2397,7 @@ function saveAdd(){
     semester:recSem,takeSem:takeSem,planSem:'',
     grade:'-',prevGrade:'-',expGrade:'-',
     status:'수강완료',   // 기본값: 수강완료
-    retake:false,retakePlan:false,retakePlanOf:null,forfeit:false,ttSlots:[],remark:'',
+    retake:false,retakePlan:false,retakePlanOf:null,ttSlots:[],remark:'',
   };
   C.push(c);sv();updStats();render();closeAddDirect();
 }
@@ -2583,7 +2511,6 @@ function bulkSetStatus(status){
     if(status==='수강중'){ c.takeSem = carrySem || c.takeSem || ''; c.planSem=''; }
     if(status==='수강예정'){ c.grade='-'; c.planSem = carrySem || c.planSem || ''; c.takeSem=''; }
     if(status==='미수강'){ c.grade='-'; c.takeSem=''; c.planSem=''; c.expGrade='-'; }
-    if(status!=='수강완료') c.forfeit=false;  // 학점포기는 수강완료 과목만
   }
   sv();updStats();render();
 }
@@ -2940,7 +2867,7 @@ async function adminAddCourse(){
           id: Date.now().toString()+Math.random().toString(36).slice(2),
           name, credits, dc:0, semester, category, prereq, prereqRec:'', remark,
           grade:'-', prevGrade:'-', expGrade:'-', status:'미수강',
-          retake:false, retakePlan:false, retakePlanOf:null, forfeit:false,
+          retake:false, retakePlan:false, retakePlanOf:null,
           takeSem:'', planSem:'', ttSlots:[],
         };
         d.courses = [...(d.courses||[]), newCourse];
@@ -3193,7 +3120,7 @@ function semRank(sem){
 
 // 이름으로 "실제 이수(합격)된" 과목 찾기 — 재수강 구버전(retake=true)은 제외
 function findEarnedCourse(name){
-  return C.find(c => c.name===name && c.status==='수강완료' && c.grade!=='F' && c.grade!=='NP' && !c.retake && !c.forfeit) || null;
+  return C.find(c => c.name===name && c.status==='수강완료' && c.grade!=='F' && c.grade!=='NP' && !c.retake) || null;
 }
 
 function checkAbeek(){
@@ -3223,7 +3150,7 @@ function checkAbeek(){
   // ── 3. 전공 (전필+전선 실이수학점) ──
   let majorCredits = 0;
   C.forEach(c=>{
-    if((c.category==='전필'||c.category==='전선') && c.status==='수강완료' && c.grade!=='F' && c.grade!=='NP' && !c.retake && !c.forfeit){
+    if((c.category==='전필'||c.category==='전선') && c.status==='수강완료' && c.grade!=='F' && c.grade!=='NP' && !c.retake){
       majorCredits += c.credits;
     }
   });
