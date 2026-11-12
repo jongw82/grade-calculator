@@ -1577,16 +1577,15 @@ async function setAdmYear(y){
 
 // ── 재수강 대체 판단 ──
 // 재수강예정으로 연결된 사본(retakePlanOf)이 원본 성적을 대신하는지 판단해 그 성적을 돌려줌
-//  - 사본이 수강완료 + 실제 성적 입력 → 그 성적으로 원본 대체
-//  - 사본이 수강중·수강예정 + 예상성적 입력 → (예상성적 토글과 무관하게) 예상성적으로 원본 대체
-//  - 성적 미입력 → 대체 안 함 (원본 성적 그대로 사용, 원본에 재수강 체크가 있어도 유지)
-// realOnly=true면 실제 성적(수강완료)만 인정 (공학인증용)
+//  - 사본이 수강완료 + 실제 성적 입력 → 그 성적으로 원본 대체 (항상)
+//  - 사본이 수강중·수강예정 + 예상성적 → 여기서는 대체 안 함. '예상성적 반영'(보라) 토글을 켰을 때만
+//    updStats ①·학기 요약에서 원본 대신 예상성적으로 계산
+//  - 그 외 → 원본 성적 그대로 사용 (원본에 재수강 체크가 있어도 유지)
 function retakeTakeover(c, realOnly){
   if(!c || !c.retakePlanOf) return null;
   const orig=C.find(x=>x.id===c.retakePlanOf);
   if(!orig) return null;
   if(c.status==='수강완료' && c.grade && c.grade!=='-') return c.grade;
-  if(!realOnly && (c.status==='수강중'||c.status==='수강예정') && c.expGrade && c.expGrade!=='-') return c.expGrade;
   return null;
 }
 // 재수강 체크로 계산에서 빠지는지: 재수강예정 사본이 연결돼 있으면 체크와 무관하게
@@ -1684,22 +1683,6 @@ function updStats(){
     if(isRetakeExcluded(c)) continue;
     const gp=GMAP[c.grade];
     if(c.grade!=='F'&&c.grade!=='NP'){
-      earn+=c.credits;
-      cat[c.category]=(cat[c.category]||0)+c.credits;
-    }
-    if(gp!=null){
-      gs+=gp*c.credits; gc+=c.credits;
-      catGS[c.category]=(catGS[c.category]||0)+gp*c.credits;
-      catGC[c.category]=(catGC[c.category]||0)+c.credits;
-    }
-  }
-
-  // 수강중·수강예정 재수강본에 예상성적이 있으면 원본 대신 그 성적으로 계산 (토글과 무관)
-  for(const c of projList){
-    const g=retakeTakeover(c);
-    if(!g) continue;
-    const gp=GMAP[g];
-    if(g!=='F'&&g!=='NP'){
       earn+=c.credits;
       cat[c.category]=(cat[c.category]||0)+c.credits;
     }
@@ -1984,28 +1967,31 @@ function render(){
   const sumEl=document.getElementById('semSummary');
   if(semSel.size>0){
     const doneRows=rows.filter(r=>r.status==='수강완료'&&!isRetakeExcluded(r));
-    // 계산용: 재수강본에 대체된 원본·성적 미입력 사본 제외, 예상성적 있는 수강중 재수강본은 포함
+    // 계산용: 실제 성적으로 재수강본에 대체된 원본·성적 미입력 수강완료 사본 제외
     const doneCalcRows=doneRows.filter(r=>!isSupersededOrig(r) && !isPendingDoneCopy(r));
-    const takeoverDoing=rows.filter(r=>(r.status==='수강중'||r.status==='수강예정')&&!r.retake&&retakeTakeover(r));
-    const projRows=rows.filter(r=>(r.status==='수강예정'||r.status==='수강중')&&!r.retake&&!retakeTakeover(r));
+    const projRows=rows.filter(r=>(r.status==='수강예정'||r.status==='수강중')&&!r.retake);
     let semEarn=0,semGS=0,semGC=0,semCnt=rows.length,semDoneCnt=doneRows.length;
     for(const r of doneCalcRows){
       const gp=GMAP[r.grade];
       if(r.grade!=='F'&&r.grade!=='NP') semEarn+=r.credits;
       if(gp!=null){semGS+=gp*r.credits;semGC+=r.credits;}
     }
-    for(const r of takeoverDoing){
-      const g=retakeTakeover(r), gp=GMAP[g];
-      if(g!=='F'&&g!=='NP') semEarn+=r.credits;
-      if(gp!=null){semGS+=gp*r.credits;semGC+=r.credits;}
-    }
 
     // 예상성적 반영 ON일 때 — 이 학기의 수강예정/수강중 과목 중 예상성적이 입력된 것 반영
     let semProjEarn=semEarn, semProjGS=semGS, semProjGC=semGC, semProjCount=0;
     for(const r of projRows){
-      semProjEarn += (r.credits||0);
       const eg=r.expGrade||'-';
       const egp=GMAP[eg];
+      // 재수강예정 사본인데 원본도 지금 보이는 학기에 있으면 → 중복 방지
+      const orig=r.retakePlanOf ? doneCalcRows.find(x=>x.id===r.retakePlanOf) : null;
+      if(orig){
+        if(egp==null) continue;   // 예상성적 없으면 원본 그대로
+        // 예상성적 있으면 원본 기여분을 빼고 사본 예상성적으로 교체
+        const ogp=GMAP[orig.grade];
+        if(orig.grade!=='F'&&orig.grade!=='NP') semProjEarn -= orig.credits;
+        if(ogp!=null){ semProjGS -= ogp*orig.credits; semProjGC -= orig.credits; }
+      }
+      semProjEarn += (r.credits||0);
       if(egp!=null){
         semProjGS += egp*(r.credits||0);
         semProjGC += (r.credits||0);
