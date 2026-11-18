@@ -1799,9 +1799,10 @@ function updStats(){
     setText('sRem', Math.max(0,req.total-earn));
   }
   setText('sRemT', `총 ${req.total}학점 기준`);
-  const forfeitCnt=C.filter(c=>c.status==='학점포기').length;
-  setText('sCnt', C.length-forfeitCnt);
-  setText('sCntS', `완료 ${done.length} · 수강중 ${doing.length} · 미수강 ${C.filter(c=>c.status==='미수강').length}${forfeitCnt?` · 포기 ${forfeitCnt}`:''}`);
+  const forfeitList=C.filter(c=>c.status==='학점포기');
+  const forfeitCred=forfeitList.reduce((s,c)=>s+(c.credits||0),0);
+  setText('sCnt', C.length-forfeitList.length);
+  setText('sCntS', `완료 ${done.length} · 수강중 ${doing.length} · 미수강 ${C.filter(c=>c.status==='미수강').length}${forfeitList.length?` · 포기 ${forfeitCred}학점`:''}`);
   setText('ytag', `${yr}학번`);
 
   // 분류별 GPA 카드 — 예상성적 반영 토글에 따라 실제/예상 값을 선택
