@@ -443,14 +443,7 @@ input[type=checkbox]{width:14px;height:14px;accent-color:var(--accent);cursor:po
 .catgpa-sec{padding-left:28px;padding-right:28px}
 
 /* 넓은 화면 좌우 여백: 배경·구분선은 전체 폭 유지, 내용은 최대 1400px 가운데 정렬 (900px 이하는 기존 그대로) */
-/* 넓은 화면: 헤더는 화면 끝까지, 그 아래 내용은 가운데 1400px 흰 박스 (양옆은 연한 회색 여백 + 박스 그림자) */
-@media(min-width:901px){
-  body{background:var(--bg)}
-  /* 화면 높이 전체를 덮는 가운데 흰 판 — 내용이 짧아도 끝까지 이어짐 */
-  body::before{content:'';position:fixed;top:0;bottom:0;left:50%;width:min(1400px,100%);transform:translateX(-50%);background:var(--surface);box-shadow:0 0 28px rgba(30,34,53,.09),0 0 0 1px rgba(30,34,53,.04);z-index:-1;pointer-events:none}
-  .header{padding-left:max(28px,calc((100% - 1400px) / 2 + 28px));padding-right:max(28px,calc((100% - 1400px) / 2 + 28px))}
-  .sbar,.csec,.ctrl,.twrap,.catgpa-sec{max-width:1400px;margin-left:auto;margin-right:auto;padding-left:28px;padding-right:28px}
-}
+@media(min-width:901px){.header,.sbar,.csec,.ctrl,.twrap,.catgpa-sec{padding-left:max(28px,calc((100% - 1400px) / 2));padding-right:max(28px,calc((100% - 1400px) / 2))}}
 /* 넓은 화면 숫자 요약 카드: 화면을 꽉 채우지 않고 내용에 맞는 일정한 폭으로 왼쪽부터 배치 (900px 이하는 기존 그대로) */
 @media(min-width:901px){.sbar{grid-template-columns:repeat(auto-fill,220px)}.sem-summary-cards{grid-template-columns:repeat(4,220px)!important}#catGPA{grid-template-columns:repeat(auto-fill,150px)!important}}
 @media(max-width:1200px){.ccards{grid-template-columns:repeat(3,1fr)}}
