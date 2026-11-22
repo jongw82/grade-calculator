@@ -265,9 +265,9 @@ tbody td:nth-child(11) .retake-cell{justify-content:center}
 .status-select.st-done{background:var(--green-light);color:var(--green);border-color:#86efac}
 .status-select.st-doing{background:var(--blue-light);color:var(--blue);border-color:#7dd3fc}
 .status-select.st-plan{background:var(--purple-light);color:var(--purple);border-color:#c4b5fd}
-.status-select.st-forfeit{background:#f1f5f9;color:#64748b;border-color:#cbd5e1;text-decoration:line-through}
-/* 학점포기: 표에는 남지만 모든 계산·개수에서 제외 → 흐리게 */
-tbody tr.forfeit-row{background:#f8fafc}
+.status-select.st-forfeit{background:#f1f5f9;color:#64748b;border-color:#cbd5e1}
+/* 계산제외(학점포기·재수강으로 빠진 과목): 표에는 남지만 계산에서 제외 → 회색으로 흐리게 */
+tbody tr.forfeit-row,tbody tr.forfeit-row.retake-plan-row{background:#f8fafc}
 tbody tr.forfeit-row td{opacity:.55}
 tbody tr.forfeit-row td:nth-child(8),tbody tr.forfeit-row td:last-child{opacity:1}
 .status-select option{background:#fff;color:var(--text)}
@@ -443,7 +443,12 @@ input[type=checkbox]{width:14px;height:14px;accent-color:var(--accent);cursor:po
 .catgpa-sec{padding-left:28px;padding-right:28px}
 
 /* 넓은 화면 좌우 여백: 배경·구분선은 전체 폭 유지, 내용은 최대 1400px 가운데 정렬 (900px 이하는 기존 그대로) */
-@media(min-width:901px){.header,.sbar,.csec,.ctrl,.twrap,.catgpa-sec{padding-left:max(28px,calc((100% - 1400px) / 2));padding-right:max(28px,calc((100% - 1400px) / 2))}}
+/* 넓은 화면: 헤더는 화면 끝까지, 그 아래 내용은 가운데 1400px 박스 안에만 배경·구분선 (양옆은 흰 여백) */
+@media(min-width:901px){
+  body{background:var(--surface)}
+  .header{padding-left:max(28px,calc((100% - 1400px) / 2 + 28px));padding-right:max(28px,calc((100% - 1400px) / 2 + 28px))}
+  .sbar,.csec,.ctrl,.twrap,.catgpa-sec{max-width:1400px;margin-left:auto;margin-right:auto;padding-left:28px;padding-right:28px}
+}
 /* 넓은 화면 숫자 요약 카드: 화면을 꽉 채우지 않고 내용에 맞는 일정한 폭으로 왼쪽부터 배치 (900px 이하는 기존 그대로) */
 @media(min-width:901px){.sbar{grid-template-columns:repeat(auto-fill,220px)}.sem-summary-cards{grid-template-columns:repeat(4,220px)!important}#catGPA{grid-template-columns:repeat(auto-fill,150px)!important}}
 @media(max-width:1200px){.ccards{grid-template-columns:repeat(3,1fr)}}
@@ -1802,7 +1807,7 @@ function updStats(){
   const forfeitList=C.filter(c=>c.status==='학점포기');
   const forfeitCred=forfeitList.reduce((s,c)=>s+(c.credits||0),0);
   setText('sCnt', C.length-forfeitList.length);
-  setText('sCntS', `완료 ${done.length} · 수강중 ${doing.length} · 미수강 ${C.filter(c=>c.status==='미수강').length}${forfeitList.length?` · 포기 ${forfeitCred}학점`:''}`);
+  setHTML('sCntS', `완료 ${done.length} · 수강중 ${doing.length} · 미수강 ${C.filter(c=>c.status==='미수강').length}${forfeitList.length?`<br>포기 ${forfeitCred}학점`:''}`);
   setText('ytag', `${yr}학번`);
 
   // 분류별 GPA 카드 — 예상성적 반영 토글에 따라 실제/예상 값을 선택
@@ -2065,8 +2070,9 @@ function render(){
     let rowCls=isDone?'doner':isDoing?'doing':isPlan?'planning':isForfeit?'forfeit-row':'';
     if(isRetakePlan) rowCls+=' retake-plan-row';
 
-    // 재수강 체크된 과목 = 구 수강본, 계산 제외 표시
+    // 계산에서 빠지는 과목(재수강 구 수강본·재수강본에 대체된 원본·학점포기) → 회색 처리
     const isExcluded=isRetakeExcluded(c)||isSupersededOrig(c)||isForfeit;
+    if(isExcluded) rowCls=rowCls.replace(/\b(doner|doing|planning)\b/,'').trim()+' forfeit-row';
     // 필수 과목(전공필수·공통교필·학문기초교필) 표시 — 균형교필 제외
     const isReqCat=c.category==='전필'||c.category==='교필'||c.category==='학기초';
 
@@ -2090,7 +2096,7 @@ function render(){
       </div>`;
     } else {
       gradeCell = isForfeit && c.grade && c.grade!=='-'
-        ? `<span class="gchip gc- disabled" style="text-decoration:line-through" title="학점포기 전 성적 (수강완료로 되돌리면 복구)">${c.grade}</span>`
+        ? `<span class="gchip gc- disabled" title="학점포기 전 성적 (수강완료로 되돌리면 복구)">${c.grade}</span>`
         : `<span class="gchip gc- disabled" title="수강완료 후 성적 입력 가능">—</span>`;
     }
 
@@ -2153,8 +2159,8 @@ function render(){
 
     return`<tr class="${rowCls}">
       <td class="chk-col"><input type="checkbox" class="rchk" data-id="${c.id}" ${selectedIds.has(c.id)?'checked':''} onchange="toggleRowSelect('${c.id}',this.checked)"></td>
-      <td class="${isReqCat?'req-td':''}" title="${isReqCat?'필수 과목':''}" style="font-weight:600;min-width:120px;${isExcluded?'text-decoration:line-through;color:var(--muted)':''}">${c.name}<button class="review-btn" onclick="openReview('${c.name.replace(/'/g,"\\'")}')" title="강의 후기 보기/작성">강의후기</button>${isExcluded?`<span style="font-size:9px;background:#fee2e2;color:var(--red);border-radius:4px;padding:1px 4px;margin-left:4px;font-weight:600;vertical-align:middle">${isForfeit?'학점포기':'계산제외'}</span>`:''}${c.retakePlanOf?'<span style="font-size:9px;background:#ede9fe;color:var(--purple);border-radius:4px;padding:1px 4px;margin-left:4px;font-weight:600;vertical-align:middle">재수강예정 사본</span>':''}</td>
-      <td style="font-weight:700;text-align:center;${isExcluded?'color:var(--muted);text-decoration:line-through':''}">${c.credits}</td>
+      <td class="${isReqCat?'req-td':''}" title="${isReqCat?'필수 과목':''}" style="font-weight:600;min-width:120px;${isExcluded?'color:var(--muted)':''}">${c.name}<button class="review-btn" onclick="openReview('${c.name.replace(/'/g,"\\'")}')" title="강의 후기 보기/작성">강의후기</button>${isExcluded?`<span style="font-size:9px;background:#fee2e2;color:var(--red);border-radius:4px;padding:1px 4px;margin-left:4px;font-weight:600;vertical-align:middle">계산제외</span>`:''}${c.retakePlanOf?'<span style="font-size:9px;background:#ede9fe;color:var(--purple);border-radius:4px;padding:1px 4px;margin-left:4px;font-weight:600;vertical-align:middle">재수강예정 사본</span>':''}</td>
+      <td style="font-weight:700;text-align:center;${isExcluded?'color:var(--muted)':''}">${c.credits}</td>
       <td style="color:var(--muted);text-align:center;font-size:12px">${c.semester||'—'}</td>
       <td style="text-align:center">${semCell}</td>
       <td style="text-align:center">${catCell}</td>
