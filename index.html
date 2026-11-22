@@ -2072,7 +2072,7 @@ function render(){
 
     // 계산에서 빠지는 과목(재수강 구 수강본·재수강본에 대체된 원본·학점포기) → 회색 처리
     const isExcluded=isRetakeExcluded(c)||isSupersededOrig(c)||isForfeit;
-    if(isExcluded) rowCls=rowCls.replace(/\b(doner|doing|planning)\b/,'').trim()+' forfeit-row';
+    if(isExcluded && !isForfeit) rowCls=rowCls.replace(/\b(doner|doing|planning)\b/,'').trim()+' forfeit-row';
     // 필수 과목(전공필수·공통교필·학문기초교필) 표시 — 균형교필 제외
     const isReqCat=c.category==='전필'||c.category==='교필'||c.category==='학기초';
 
