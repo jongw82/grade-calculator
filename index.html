@@ -2691,17 +2691,18 @@ function openBulkGradePop(){
   pop.style.display='flex';
 }
 function bulkSetGrade(g){
-  let doneCount=0, expCount=0, skipCount=0, retakeSkip=0;
+  let doneCount=0, expCount=0, skipCount=0;
   for(const id of selectedIds){
     const c=C.find(x=>x.id===id); if(!c) continue;
-    if(g==='A+' && isRetakeCopy(c)){ retakeSkip++; continue; }  // 재수강 과목은 A+ 불가
-    if(c.status==='수강완료'){ c.grade=g; doneCount++; }
-    else if(c.status==='수강예정'||c.status==='수강중'){ c.expGrade=g; expCount++; }
+    // 재수강 과목은 A+ 불가 → A+를 일괄 지정하면 최대치인 A0로 넣음
+    const gg=(g==='A+' && isRetakeCopy(c)) ? 'A0' : g;
+    if(c.status==='수강완료'){ c.grade=gg; doneCount++; }
+    else if(c.status==='수강예정'||c.status==='수강중'){ c.expGrade=gg; expCount++; }
     else { skipCount++; }
   }
   sv();updStats();render();
   const pop=$id('gradePopup'); if(pop){ pop.style.display='none'; pop.style.bottom=''; pop.style.transform=''; }
-  if(skipCount>0||retakeSkip>0) alert(`${skipCount>0?'성적은 수강완료/수강중/수강예정 과목에만 적용돼요.\n':''}${retakeSkip>0?`재수강 과목 ${retakeSkip}개는 A+를 줄 수 없어 건너뛰었어요.\n`:''}적용됨: ${doneCount+expCount}개 · 건너뜀: ${skipCount+retakeSkip}개`);
+  if(skipCount>0) alert(`성적은 수강완료/수강중/수강예정 과목에만 적용돼요.\n적용됨: ${doneCount+expCount}개 · 건너뜀: ${skipCount}개`);
 }
 
 function clearAll(){C=[];selectedIds.clear();sv();updStats();render();}
